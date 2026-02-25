@@ -87,6 +87,10 @@ Conventions
 - Test with httptest — mock API responses with httptest.NewServer, never call real API in tests
 - Lip Gloss styles — all colors/formatting defined in ui/styles.go, never hardcoded in commands
 
+Definition of Done
+
+Before considering any task complete, run `make lint` and fix all errors. The CI enforces golangci-lint with errcheck enabled — every error return must be handled explicitly. Use `_ = expr` to intentionally discard errors, never silently drop them.
+
 Design Goals
 
 Build a CLI experience on par with fly and terraform:
@@ -98,11 +102,12 @@ Build a CLI experience on par with fly and terraform:
 - Fast startup (no interpreter overhead)
 
 ---
-Commands (10 total, all top-level — no subcommands)
+Commands (11 total, all top-level — no subcommands)
 
 kyper login       — Authenticate via browser (device auth flow)
 kyper init        — Interactive project setup wizard
 kyper validate    — Validate kyper.yml locally
+kyper tag         — Bump the version in kyper.yml (patch/minor/major)
 kyper push        — Validate + archive + upload + tail build log
 kyper status      — Show app and latest version status
 kyper logs        — Stream build logs for latest version

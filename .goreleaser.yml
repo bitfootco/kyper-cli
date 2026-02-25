@@ -1,0 +1,44 @@
+version: 2
+
+builds:
+  - main: ./cmd/kyper
+    binary: kyper
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/bitfootco/kyper-cli/internal/version.Version={{.Version}}
+      - -X github.com/bitfootco/kyper-cli/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/bitfootco/kyper-cli/internal/version.Date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+brews:
+  - repository:
+      owner: bitfootco
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    name: kyper
+    homepage: "https://kyper.shop"
+    description: "CLI for the Kyper marketplace"
+    install: |
+      bin.install "kyper"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
