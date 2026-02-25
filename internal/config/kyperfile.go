@@ -87,9 +87,12 @@ func (d *DepEntry) UnmarshalYAML(value *yaml.Node) error {
 				}
 				d.StorageGB = gb
 			default:
-				// The dep name is the key, version is the value
+				// The dep name is the key, version is the value.
+				// A null node (bare key with no value) means no version pinned.
 				d.Name = key
-				d.Version = val.Value
+				if val.Tag != "!!null" {
+					d.Version = val.Value
+				}
 			}
 		}
 		return nil
@@ -100,12 +103,12 @@ func (d *DepEntry) UnmarshalYAML(value *yaml.Node) error {
 
 func (d DepEntry) MarshalYAML() (interface{}, error) {
 	if d.StorageGB > 0 {
+		// Use empty string (not nil) when no version is set so the round-trip
+		// is stable: nil marshals as "null" which UnmarshalYAML cannot reliably
+		// distinguish from the string "null".
 		m := map[string]interface{}{
-			d.Name: d.Version,
+			d.Name:       d.Version,
 			"storage_gb": d.StorageGB,
-		}
-		if d.Version == "" {
-			m[d.Name] = nil
 		}
 		return m, nil
 	}

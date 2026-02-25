@@ -113,39 +113,38 @@ var pushCmd = &cobra.Command{
 			fmt.Println()
 		}
 
-		// 6. Wait for build
-		finalStatus, buildLog, err := waitForBuild(client, vr.ID, jsonOutput)
-		if err != nil {
-			return err
-		}
-
-		if !jsonOutput {
-			printBuildStatus(finalStatus)
-		}
-
-		// 7. On failure: show log and prompt retry
-		if finalStatus == "build_failed" {
-			if !jsonOutput && buildLog != "" {
-				fmt.Println()
-				fmt.Print(buildLog)
-				fmt.Println()
+		// 6. Stream build log — live output in interactive mode, silent poll in JSON mode
+		var finalStatus string
+		if jsonOutput {
+			finalStatus, _, err = waitForBuild(client, vr.ID, true)
+			if err != nil {
+				return err
 			}
-			if !jsonOutput {
-				var retry bool
-				if err := huh.NewConfirm().
-					Title("Retry build?").
-					Affirmative("Yes").
-					Negative("No").
-					Value(&retry).
-					Run(); err != nil {
-					return err
+		} else {
+			fmt.Println()
+			finalStatus, err = tailLog(client, vr.ID, 0)
+			if err != nil {
+				return err
+			}
+		}
+
+		// 7. On failure: prompt retry (log was already streamed live above)
+		if finalStatus == "build_failed" && !jsonOutput {
+			var retry bool
+			if err = huh.NewConfirm().
+				Title("Retry build?").
+				Affirmative("Yes").
+				Negative("No").
+				Value(&retry).
+				Run(); err != nil {
+				return err
+			}
+			if retry {
+				if _, err = client.RetryVersion(vr.ID); err != nil {
+					return fmt.Errorf("retrying build: %w", err)
 				}
-				if retry {
-					if _, err := client.RetryVersion(vr.ID); err != nil {
-						return fmt.Errorf("retrying build: %w", err)
-					}
-					return tailLog(client, vr.ID, 0)
-				}
+				_, err = tailLog(client, vr.ID, 0)
+				return err
 			}
 		}
 
@@ -164,15 +163,6 @@ func buildAppParams(kf *config.KyperFile) map[string]interface{} {
 	}
 
 	applyPricingParams(kf, params)
-
-	// Build tech_stack string from processes and deps
-	var stacks []string
-	for name := range kf.Processes {
-		stacks = append(stacks, name)
-	}
-	if len(stacks) > 0 {
-		params["tech_stack"] = fmt.Sprintf("processes: %v", stacks)
-	}
 
 	return params
 }

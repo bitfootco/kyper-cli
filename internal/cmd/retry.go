@@ -16,12 +16,12 @@ var retryCmd = &cobra.Command{
 	Short: "Retry a failed build",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		kf, _, err := loadKyperYML()
+		_, client, err := requireAuth()
 		if err != nil {
 			return err
 		}
 
-		_, client, err := requireAuth()
+		kf, _, err := loadKyperYML()
 		if err != nil {
 			return err
 		}
@@ -53,6 +53,7 @@ var retryCmd = &cobra.Command{
 		ui.PrintSuccess(resp.Message)
 		fmt.Println()
 
-		return tailLog(client, v.ID, 0)
+		_, err = tailLog(client, v.ID, 0)
+		return err
 	},
 }

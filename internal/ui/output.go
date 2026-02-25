@@ -71,6 +71,6 @@ func PrintTable(headers []string, rows [][]string) {
 			}
 			parts[i] = TableCell.Render(fmt.Sprintf("%-*s", widths[i], cell))
 		}
-		fmt.Println(strings.Join(parts, ""))
+		fmt.Println(strings.Join(parts, "  "))
 	}
 }

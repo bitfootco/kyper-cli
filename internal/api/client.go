@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -180,7 +181,7 @@ func (c *Client) DeviceAuthorize() (*DeviceGrant, error) {
 
 func (c *Client) DeviceToken(code string) (*TokenResponse, error) {
 	var resp TokenResponse
-	err := c.doJSON("GET", "/api/v1/device/token?code="+code, nil, &resp)
+	err := c.doJSON("GET", "/api/v1/device/token?code="+url.QueryEscape(code), nil, &resp)
 	return &resp, err
 }
 

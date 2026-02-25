@@ -36,32 +36,23 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return t.base().RoundTrip(r)
 	}
 
-	var resp *http.Response
-	var err error
-	backoffs := []time.Duration{0, 1 * time.Second, 2 * time.Second}
+	retryDelays := []time.Duration{1 * time.Second, 2 * time.Second}
 
-	for i, backoff := range backoffs {
-		if i > 0 {
-			time.Sleep(backoff)
-			// Re-clone for retry (body may have been consumed)
-			r = req.Clone(req.Context())
-			if t.Token != "" {
-				r.Header.Set("Authorization", "Bearer "+t.Token)
-			}
-			r.Header.Set("User-Agent", "kyper-cli/"+version.Version)
-		}
-
-		resp, err = t.base().RoundTrip(r)
+	for attempt := 0; ; attempt++ {
+		resp, err := t.base().RoundTrip(r)
 		if err != nil {
 			return nil, err
 		}
-
-		// Only retry on 5xx
-		if resp.StatusCode < 500 || i == len(backoffs)-1 {
+		if resp.StatusCode < 500 || attempt >= len(retryDelays) {
 			return resp, nil
 		}
 		resp.Body.Close()
+		time.Sleep(retryDelays[attempt])
+		// Re-clone for retry
+		r = req.Clone(req.Context())
+		if t.Token != "" {
+			r.Header.Set("Authorization", "Bearer "+t.Token)
+		}
+		r.Header.Set("User-Agent", "kyper-cli/"+version.Version)
 	}
-
-	return resp, err
 }

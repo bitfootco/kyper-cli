@@ -55,20 +55,22 @@ func slugFromTitle(title string) string {
 	return s
 }
 
-func tailLog(client *api.Client, versionID int, startCursor int) error {
+// tailLog streams the build log for a version, printing output as it arrives.
+// It returns the final build status (e.g. "built", "build_failed", "in_review").
+func tailLog(client *api.Client, versionID int, startCursor int) (string, error) {
 	cursor := startCursor
 	timeout := time.After(30 * time.Minute)
 
 	for {
 		select {
 		case <-timeout:
-			return fmt.Errorf("build log tailing timed out after 30 minutes")
+			return "", fmt.Errorf("build log tailing timed out after 30 minutes")
 		default:
 		}
 
 		log, err := client.GetBuildLog(versionID, cursor)
 		if err != nil {
-			return fmt.Errorf("fetching build log: %w", err)
+			return "", fmt.Errorf("fetching build log: %w", err)
 		}
 
 		if log.Log != "" {
@@ -79,7 +81,7 @@ func tailLog(client *api.Client, versionID int, startCursor int) error {
 		if log.Complete {
 			fmt.Println()
 			printBuildStatus(log.Status)
-			return nil
+			return log.Status, nil
 		}
 
 		time.Sleep(2 * time.Second)

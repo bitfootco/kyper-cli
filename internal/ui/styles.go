@@ -20,7 +20,7 @@ var (
 	InfoStyle   = lipgloss.NewStyle().Bold(true)
 	Label       = lipgloss.NewStyle().Bold(true)
 	TableHeader = lipgloss.NewStyle().Bold(true)
-	TableCell   = lipgloss.NewStyle().PaddingRight(2)
+	TableCell   = lipgloss.NewStyle()
 
 	// Status signal styles — color reserved for ✓ ✗ ! symbols and status text
 	Success = lipgloss.NewStyle().Foreground(colorSuccess)

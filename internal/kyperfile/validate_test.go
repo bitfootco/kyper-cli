@@ -45,6 +45,13 @@ func TestNameRequired(t *testing.T) {
 	assertContainsError(t, r, "name is required")
 }
 
+func TestNameNoAlphanumeric(t *testing.T) {
+	kf := validKyperFile()
+	kf.Name = "!!!"
+	r := Validate(kf, false)
+	assertContainsError(t, r, "at least one letter or digit")
+}
+
 func TestNameTooLong(t *testing.T) {
 	kf := validKyperFile()
 	kf.Name = strings.Repeat("a", 101)
@@ -101,7 +108,7 @@ func TestCategoryInvalid(t *testing.T) {
 
 func TestAllValidCategories(t *testing.T) {
 	kf := validKyperFile()
-	for _, c := range CATEGORIES {
+	for _, c := range Categories {
 		kf.Category = c
 		r := Validate(kf, false)
 		if !r.Valid {

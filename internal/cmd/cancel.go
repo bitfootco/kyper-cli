@@ -16,12 +16,12 @@ var cancelCmd = &cobra.Command{
 	Short: "Cancel a pending or building version",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		kf, _, err := loadKyperYML()
+		_, client, err := requireAuth()
 		if err != nil {
 			return err
 		}
 
-		_, client, err := requireAuth()
+		kf, _, err := loadKyperYML()
 		if err != nil {
 			return err
 		}

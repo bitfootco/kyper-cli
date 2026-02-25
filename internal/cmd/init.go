@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/bitfootco/kyper-cli/internal/config"
 	"github.com/bitfootco/kyper-cli/internal/detect"
+	"github.com/bitfootco/kyper-cli/internal/kyperfile"
 	"github.com/bitfootco/kyper-cli/internal/ui"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -235,9 +236,29 @@ var initCmd = &cobra.Command{
 			fmt.Println(rendered)
 		}
 
+		// Show any validation issues with the generated file
+		result := kyperfile.Validate(kf, false)
+		if len(result.Errors) > 0 || len(result.Warnings) > 0 {
+			for _, e := range result.Errors {
+				ui.PrintError(e)
+			}
+			for _, w := range result.Warnings {
+				ui.PrintWarning(w)
+			}
+			fmt.Println()
+		}
+
+		// Detect whether we'd be overwriting an existing file
+		_, statErr := os.Stat("kyper.yml")
+		kyperYmlExists := statErr == nil
+		confirmTitle := "Write kyper.yml?"
+		if kyperYmlExists {
+			confirmTitle = "Overwrite existing kyper.yml?"
+		}
+
 		var confirm bool
 		if err := huh.NewConfirm().
-			Title("Write kyper.yml?").
+			Title(confirmTitle).
 			Value(&confirm).
 			Run(); err != nil {
 			return err
@@ -252,7 +273,11 @@ var initCmd = &cobra.Command{
 			return fmt.Errorf("writing kyper.yml: %w", err)
 		}
 
-		ui.PrintSuccess("Created kyper.yml")
+		if kyperYmlExists {
+			ui.PrintSuccess("Updated kyper.yml")
+		} else {
+			ui.PrintSuccess("Created kyper.yml")
+		}
 		return nil
 	},
 }

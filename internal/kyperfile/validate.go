@@ -9,7 +9,7 @@ import (
 	"github.com/bitfootco/kyper-cli/internal/config"
 )
 
-var CATEGORIES = []string{
+var Categories = []string{
 	"developer_tools",
 	"productivity",
 	"finance",
@@ -21,7 +21,7 @@ var CATEGORIES = []string{
 	"gaming",
 }
 
-var KNOWN_DEPS = []string{
+var KnownDeps = []string{
 	"postgres",
 	"mysql",
 	"redis",
@@ -29,7 +29,7 @@ var KNOWN_DEPS = []string{
 	"opensearch",
 }
 
-var ALLOWED_DEP_VERSIONS = map[string][]string{
+var AllowedDepVersions = map[string][]string{
 	"postgres":      {"14", "15", "16"},
 	"mysql":         {"8"},
 	"redis":         {"6", "7"},
@@ -37,7 +37,7 @@ var ALLOWED_DEP_VERSIONS = map[string][]string{
 	"opensearch":    {"2"},
 }
 
-var AUTO_INJECTED_ENV = []string{
+var AutoInjectedEnv = []string{
 	"DATABASE_URL",
 	"REDIS_URL",
 	"SECRET_KEY_BASE",
@@ -47,12 +47,13 @@ var AUTO_INJECTED_ENV = []string{
 	"OPENSEARCH_URL",
 }
 
-var DB_DEPS = map[string]bool{
+var DBDeps = map[string]bool{
 	"postgres": true,
 	"mysql":    true,
 }
 
 var semverRegexp = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+var slugRequiredRegexp = regexp.MustCompile(`[a-zA-Z0-9]`)
 
 type ValidationResult struct {
 	Valid    bool     `json:"valid"`
@@ -73,7 +74,6 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validateDocker(kf, r, checkFileExists)
 	validateProcesses(kf, r)
 	validateDeps(kf, r)
-	validateHooks(kf, r)
 	validateHealthcheck(kf, r)
 	validatePricing(kf, r)
 	validateEnv(kf, r)
@@ -99,6 +99,9 @@ func validateName(kf *config.KyperFile, r *ValidationResult) {
 	if len(kf.Name) > 100 {
 		addError(r, "name must be 100 characters or fewer")
 	}
+	if !slugRequiredRegexp.MatchString(kf.Name) {
+		addError(r, "name must contain at least one letter or digit")
+	}
 }
 
 func validateVersion(kf *config.KyperFile, r *ValidationResult) {
@@ -116,12 +119,12 @@ func validateCategory(kf *config.KyperFile, r *ValidationResult) {
 		addError(r, "category is required")
 		return
 	}
-	for _, c := range CATEGORIES {
+	for _, c := range Categories {
 		if kf.Category == c {
 			return
 		}
 	}
-	addError(r, fmt.Sprintf("category must be one of: %s", strings.Join(CATEGORIES, ", ")))
+	addError(r, fmt.Sprintf("category must be one of: %s", strings.Join(Categories, ", ")))
 }
 
 func validateDescription(kf *config.KyperFile, r *ValidationResult) {
@@ -173,19 +176,19 @@ func validateDeps(kf *config.KyperFile, r *ValidationResult) {
 		}
 
 		known := false
-		for _, k := range KNOWN_DEPS {
+		for _, k := range KnownDeps {
 			if dep.Name == k {
 				known = true
 				break
 			}
 		}
 		if !known {
-			addError(r, fmt.Sprintf("unknown dep %q — known deps: %s", dep.Name, strings.Join(KNOWN_DEPS, ", ")))
+			addError(r, fmt.Sprintf("unknown dep %q — known deps: %s", dep.Name, strings.Join(KnownDeps, ", ")))
 			continue
 		}
 
 		if dep.Version != "" {
-			allowed := ALLOWED_DEP_VERSIONS[dep.Name]
+			allowed := AllowedDepVersions[dep.Name]
 			valid := false
 			for _, v := range allowed {
 				if dep.Version == v {
@@ -202,10 +205,6 @@ func validateDeps(kf *config.KyperFile, r *ValidationResult) {
 			addError(r, fmt.Sprintf("dep %q storage_gb must be between 1 and 500", dep.Name))
 		}
 	}
-}
-
-func validateHooks(kf *config.KyperFile, r *ValidationResult) {
-	// Hooks are strings — Go typing handles this, but check they're non-empty if present is implicit
 }
 
 func validateHealthcheck(kf *config.KyperFile, r *ValidationResult) {
@@ -235,7 +234,7 @@ func validatePricing(kf *config.KyperFile, r *ValidationResult) {
 
 func validateEnv(kf *config.KyperFile, r *ValidationResult) {
 	autoInjected := make(map[string]bool)
-	for _, e := range AUTO_INJECTED_ENV {
+	for _, e := range AutoInjectedEnv {
 		autoInjected[e] = true
 	}
 	for _, e := range kf.Env {
@@ -251,7 +250,7 @@ func validateEnv(kf *config.KyperFile, r *ValidationResult) {
 func checkDBWithoutHook(kf *config.KyperFile, r *ValidationResult) {
 	hasDB := false
 	for _, dep := range kf.Deps {
-		if DB_DEPS[dep.Name] {
+		if DBDeps[dep.Name] {
 			hasDB = true
 			break
 		}

@@ -15,12 +15,12 @@ var logsCmd = &cobra.Command{
 	Short: "Stream build logs for the latest version",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		kf, _, err := loadKyperYML()
+		_, client, err := requireAuth()
 		if err != nil {
 			return err
 		}
 
-		_, client, err := requireAuth()
+		kf, _, err := loadKyperYML()
 		if err != nil {
 			return err
 		}
@@ -35,6 +35,7 @@ var logsCmd = &cobra.Command{
 			return fmt.Errorf("no versions found — run 'kyper push' first")
 		}
 
-		return tailLog(client, status.LatestVersion.ID, 0)
+		_, err = tailLog(client, status.LatestVersion.ID, 0)
+		return err
 	},
 }
