@@ -21,7 +21,9 @@ func TestPrintJSON(t *testing.T) {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatal(err)
+	}
 
 	var result map[string]string
 	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {

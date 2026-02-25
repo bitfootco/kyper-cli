@@ -11,10 +11,18 @@ func TestCreateZip(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create test files
-	os.WriteFile(filepath.Join(dir, "app.rb"), []byte("puts 'hello'"), 0644)
-	os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM ruby"), 0644)
-	os.MkdirAll(filepath.Join(dir, "lib"), 0755)
-	os.WriteFile(filepath.Join(dir, "lib", "helper.rb"), []byte("module Helper; end"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "app.rb"), []byte("puts 'hello'"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM ruby"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "lib"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "lib", "helper.rb"), []byte("module Helper; end"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	outPath := filepath.Join(t.TempDir(), "output.zip")
 	if err := Create(dir, outPath); err != nil {
@@ -47,9 +55,15 @@ func TestCreateZip(t *testing.T) {
 func TestCreateZipExcludesGit(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "app.rb"), []byte("hello"), 0644)
-	os.MkdirAll(filepath.Join(dir, ".git", "objects"), 0755)
-	os.WriteFile(filepath.Join(dir, ".git", "HEAD"), []byte("ref: refs/heads/main"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "app.rb"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, ".git", "objects"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".git", "HEAD"), []byte("ref: refs/heads/main"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	outPath := filepath.Join(t.TempDir(), "output.zip")
 	if err := Create(dir, outPath); err != nil {
@@ -72,9 +86,15 @@ func TestCreateZipExcludesGit(t *testing.T) {
 func TestCreateZipExcludesNodeModules(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "index.js"), []byte("console.log('hi')"), 0644)
-	os.MkdirAll(filepath.Join(dir, "node_modules", "express"), 0755)
-	os.WriteFile(filepath.Join(dir, "node_modules", "express", "index.js"), []byte(""), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "index.js"), []byte("console.log('hi')"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "node_modules", "express"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "node_modules", "express", "index.js"), []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	outPath := filepath.Join(t.TempDir(), "output.zip")
 	if err := Create(dir, outPath); err != nil {
@@ -97,9 +117,15 @@ func TestCreateZipExcludesNodeModules(t *testing.T) {
 func TestCreateZipRespectsKyperignore(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "app.rb"), []byte("hello"), 0644)
-	os.WriteFile(filepath.Join(dir, "secret.key"), []byte("shh"), 0644)
-	os.WriteFile(filepath.Join(dir, ".kyperignore"), []byte("secret.key\n"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "app.rb"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "secret.key"), []byte("shh"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".kyperignore"), []byte("secret.key\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	outPath := filepath.Join(t.TempDir(), "output.zip")
 	if err := Create(dir, outPath); err != nil {
@@ -122,8 +148,12 @@ func TestCreateZipRespectsKyperignore(t *testing.T) {
 func TestCreateZipExcludesLogFiles(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "app.rb"), []byte("hello"), 0644)
-	os.WriteFile(filepath.Join(dir, "debug.log"), []byte("log data"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "app.rb"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "debug.log"), []byte("log data"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	outPath := filepath.Join(t.TempDir(), "output.zip")
 	if err := Create(dir, outPath); err != nil {

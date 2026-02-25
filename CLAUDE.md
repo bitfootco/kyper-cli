@@ -87,6 +87,10 @@ Conventions
 - Test with httptest — mock API responses with httptest.NewServer, never call real API in tests
 - Lip Gloss styles — all colors/formatting defined in ui/styles.go, never hardcoded in commands
 
+Definition of Done
+
+Before considering any task complete, run `make lint` and fix all errors. The CI enforces golangci-lint with errcheck enabled — every error return must be handled explicitly. Use `_ = expr` to intentionally discard errors, never silently drop them.
+
 Design Goals
 
 Build a CLI experience on par with fly and terraform:

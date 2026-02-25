@@ -22,7 +22,7 @@ func TestGetMe(t *testing.T) {
 		if r.URL.Path != "/api/v1/me" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		json.NewEncoder(w).Encode(User{ID: 1, Email: "dev@test.com", Role: "developer"})
+		_ = json.NewEncoder(w).Encode(User{ID: 1, Email: "dev@test.com", Role: "developer"})
 	}))
 	defer srv.Close()
 
@@ -40,7 +40,7 @@ func TestDeviceAuthorize(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		json.NewEncoder(w).Encode(DeviceGrant{Code: "abc-123", VerificationURI: "https://kyper.shop/device?code=abc-123"})
+		_ = json.NewEncoder(w).Encode(DeviceGrant{Code: "abc-123", VerificationURI: "https://kyper.shop/device?code=abc-123"})
 	}))
 	defer srv.Close()
 
@@ -59,7 +59,7 @@ func TestDeviceToken(t *testing.T) {
 		if code != "abc-123" {
 			t.Errorf("expected code 'abc-123', got %q", code)
 		}
-		json.NewEncoder(w).Encode(TokenResponse{APIToken: "tok_123"})
+		_ = json.NewEncoder(w).Encode(TokenResponse{APIToken: "tok_123"})
 	}))
 	defer srv.Close()
 
@@ -77,7 +77,7 @@ func TestGetAppStatus(t *testing.T) {
 		if r.URL.Path != "/api/v1/apps/my-app/status" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		json.NewEncoder(w).Encode(AppStatus{
+		_ = json.NewEncoder(w).Encode(AppStatus{
 			App:    "my-app",
 			Status: "active",
 			LatestVersion: &VersionInfo{
@@ -113,7 +113,10 @@ func TestCreateVersion(t *testing.T) {
 			t.Errorf("expected multipart content type, got %q", r.Header.Get("Content-Type"))
 		}
 
-		r.ParseMultipartForm(10 << 20)
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Errorf("ParseMultipartForm failed: %v", err)
+			return
+		}
 		gotKyperYml = r.FormValue("kyper_yml")
 		file, header, _ := r.FormFile("source_zip")
 		if file != nil {
@@ -122,14 +125,16 @@ func TestCreateVersion(t *testing.T) {
 		}
 
 		w.WriteHeader(201)
-		json.NewEncoder(w).Encode(VersionResponse{ID: 42, Version: "1.0.0", Status: "pending"})
+		_ = json.NewEncoder(w).Encode(VersionResponse{ID: 42, Version: "1.0.0", Status: "pending"})
 	}))
 	defer srv.Close()
 
 	// Create a temp zip file
 	dir := t.TempDir()
 	zipPath := filepath.Join(dir, "source.zip")
-	os.WriteFile(zipPath, []byte("fake-zip-content"), 0644)
+	if err := os.WriteFile(zipPath, []byte("fake-zip-content"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	vr, err := client.CreateVersion("my-app", "name: my-app\n", zipPath)
 	if err != nil {
@@ -153,12 +158,12 @@ func TestCreateApp(t *testing.T) {
 		}
 		body, _ := io.ReadAll(r.Body)
 		var req map[string]interface{}
-		json.Unmarshal(body, &req)
+		_ = json.Unmarshal(body, &req)
 		if _, ok := req["app"]; !ok {
 			t.Error("expected 'app' key in request body")
 		}
 		w.WriteHeader(201)
-		json.NewEncoder(w).Encode(App{Slug: "my-app", Title: "My App"})
+		_ = json.NewEncoder(w).Encode(App{Slug: "my-app", Title: "My App"})
 	}))
 	defer srv.Close()
 
@@ -174,7 +179,7 @@ func TestCreateApp(t *testing.T) {
 func TestAPIErrorParsing(t *testing.T) {
 	client, srv := testClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(422)
-		json.NewEncoder(w).Encode(map[string][]string{"errors": {"name is required", "version is invalid"}})
+		_ = json.NewEncoder(w).Encode(map[string][]string{"errors": {"name is required", "version is invalid"}})
 	}))
 	defer srv.Close()
 
@@ -197,7 +202,7 @@ func TestAPIErrorParsing(t *testing.T) {
 func TestAPIErrorNotFound(t *testing.T) {
 	client, srv := testClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
-		json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
 	}))
 	defer srv.Close()
 
@@ -215,7 +220,7 @@ func TestGetBuildLog(t *testing.T) {
 		if r.URL.Query().Get("cursor") != "10" {
 			t.Errorf("unexpected cursor: %s", r.URL.Query().Get("cursor"))
 		}
-		json.NewEncoder(w).Encode(BuildLog{Status: "building", Log: "Step 1...\n", Cursor: 20, Complete: false})
+		_ = json.NewEncoder(w).Encode(BuildLog{Status: "building", Log: "Step 1...\n", Cursor: 20, Complete: false})
 	}))
 	defer srv.Close()
 

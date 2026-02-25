@@ -17,7 +17,7 @@ func TestTransportSetsAuthHeader(t *testing.T) {
 
 	client := &http.Client{Transport: &Transport{Token: "mytoken"}}
 	req, _ := http.NewRequest("GET", srv.URL+"/test", nil)
-	client.Do(req)
+	_, _ = client.Do(req)
 
 	if gotAuth != "Bearer mytoken" {
 		t.Errorf("expected 'Bearer mytoken', got %q", gotAuth)
@@ -34,7 +34,7 @@ func TestTransportSkipsAuthWhenEmpty(t *testing.T) {
 
 	client := &http.Client{Transport: &Transport{Token: ""}}
 	req, _ := http.NewRequest("GET", srv.URL+"/test", nil)
-	client.Do(req)
+	_, _ = client.Do(req)
 
 	if gotAuth != "" {
 		t.Errorf("expected empty auth header, got %q", gotAuth)
@@ -51,7 +51,7 @@ func TestTransportSetsUserAgent(t *testing.T) {
 
 	client := &http.Client{Transport: &Transport{Token: ""}}
 	req, _ := http.NewRequest("GET", srv.URL+"/test", nil)
-	client.Do(req)
+	_, _ = client.Do(req)
 
 	if gotUA == "" {
 		t.Error("expected user-agent header to be set")
