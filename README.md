@@ -1,5 +1,7 @@
 # Kyper CLI
 
+[![CI](https://github.com/bitfootco/kyper-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/bitfootco/kyper-cli/actions/workflows/ci.yml)
+
 The official command-line tool for developers to push, validate, and manage apps on the [Kyper](https://kyper.shop) marketplace.
 
 ## Features
@@ -13,9 +15,21 @@ The official command-line tool for developers to push, validate, and manage apps
 
 ## Install
 
+### Homebrew (macOS / Linux)
+
 ```bash
-brew tap kyper-shop/tap
+brew tap bitfootco/tap
 brew install kyper
+```
+
+### Binary download
+
+Grab a prebuilt binary from the [Releases](https://github.com/bitfootco/kyper-cli/releases) page. Archives are available for macOS and Linux on both amd64 and arm64.
+
+```bash
+# Example: macOS ARM
+tar -xzf kyper_darwin_arm64.tar.gz
+sudo mv kyper /usr/local/bin/
 ```
 
 ## Quick Start
@@ -82,10 +96,29 @@ Built with Go, [Cobra](https://github.com/spf13/cobra), [Huh](https://github.com
 
 ## Development
 
+Requires **Go 1.23+**.
+
 ```bash
+# Build
 go build -o kyper ./cmd/kyper
-go test ./...
+
+# Test (CI runs with -race)
+go test -race ./...
+
+# Lint (must match CI)
+golangci-lint run
 ```
+
+### Releasing
+
+Releases are automated via [GoReleaser](https://goreleaser.com). Push a semver tag to trigger a build:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+This runs the test suite, builds binaries for all platforms, publishes a GitHub release, and updates the Homebrew tap.
 
 ## License
 
