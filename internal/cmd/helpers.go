@@ -89,13 +89,13 @@ func tailLog(client *api.Client, versionID int, startCursor int) error {
 func printBuildStatus(status string) {
 	switch status {
 	case "published", "built":
-		fmt.Println(ui.SuccessBanner.Render("BUILD SUCCEEDED"))
+		fmt.Println(ui.SuccessBanner.Render("✓ Build succeeded"))
 	case "build_failed":
-		fmt.Println(ui.ErrorBanner.Render("BUILD FAILED"))
+		fmt.Println(ui.ErrorBanner.Render("✗ Build failed"))
 	case "cancelled":
-		fmt.Println(ui.WarningBanner.Render("BUILD CANCELLED"))
+		fmt.Println(ui.WarningBanner.Render("! Build cancelled"))
 	default:
-		fmt.Println(ui.Label.Render("Status: " + status))
+		fmt.Println(ui.Bold.Render("Status: ") + status)
 	}
 }
 

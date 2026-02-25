@@ -32,9 +32,29 @@ var initCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		defaultTitle := filepath.Base(cwd)
+		defaultTitle := toHumanTitle(filepath.Base(cwd))
 
-		// Step 1: App basics
+		// Step 2: Auto-detect (before step 1 form so detection runs first)
+		stacks := detect.DetectStack(cwd)
+		detectedProcesses := detect.DetectProcesses(cwd)
+		detectedDeps := detect.DetectDeps(cwd)
+
+		if len(stacks) > 0 || len(detectedProcesses) > 0 || len(detectedDeps) > 0 {
+			fmt.Println()
+			fmt.Println(ui.Bold.Render("Auto-detected:"))
+			for _, s := range stacks {
+				fmt.Printf("  Stack: %s (%s)\n", ui.InfoStyle.Render(s.Name), ui.DimStyle.Render(s.Source))
+			}
+			for _, p := range detectedProcesses {
+				fmt.Printf("  Process: %s → %s (%s)\n", ui.InfoStyle.Render(p.Name), p.Command, ui.DimStyle.Render(p.Source))
+			}
+			for _, d := range detectedDeps {
+				fmt.Printf("  Dep: %s (%s)\n", ui.InfoStyle.Render(d.Name), ui.DimStyle.Render(d.Source))
+			}
+			fmt.Println()
+		}
+
+		// Step 1: App basics — split into two groups so the category list doesn't crowd other fields
 		var title, category, tagline, description string
 
 		err = huh.NewForm(
@@ -48,6 +68,8 @@ var initCmd = &cobra.Command{
 					Title("Category").
 					Options(categoryOptions()...).
 					Value(&category),
+			),
+			huh.NewGroup(
 				huh.NewInput().
 					Title("Tagline").
 					Description("Short pitch (max 160 chars, optional)").
@@ -68,30 +90,10 @@ var initCmd = &cobra.Command{
 			title = defaultTitle
 		}
 
-		// Step 2: Auto-detect
-		stacks := detect.DetectStack(cwd)
-		detectedProcesses := detect.DetectProcesses(cwd)
-		detectedDeps := detect.DetectDeps(cwd)
-
-		if len(stacks) > 0 || len(detectedProcesses) > 0 || len(detectedDeps) > 0 {
-			fmt.Println()
-			fmt.Println(ui.Bold.Render("Auto-detected:"))
-			for _, s := range stacks {
-				fmt.Printf("  Stack: %s (%s)\n", ui.InfoStyle.Render(s.Name), ui.DimStyle.Render(s.Source))
-			}
-			for _, p := range detectedProcesses {
-				fmt.Printf("  Process: %s → %s (%s)\n", ui.InfoStyle.Render(p.Name), p.Command, ui.DimStyle.Render(p.Source))
-			}
-			for _, d := range detectedDeps {
-				fmt.Printf("  Dep: %s (%s)\n", ui.InfoStyle.Render(d.Name), ui.DimStyle.Render(d.Source))
-			}
-			fmt.Println()
-		}
-
 		// Step 3: Processes
 		processes := make(map[string]string)
 		if len(detectedProcesses) > 0 {
-			var useDetected bool
+			useDetected := true // default Yes
 			if err := huh.NewConfirm().
 				Title("Use detected processes?").
 				Value(&useDetected).
@@ -174,24 +176,17 @@ var initCmd = &cobra.Command{
 			}
 		}
 
-		// Step 6: Health check
+		// Steps 6–8: Health check, pricing, resources — one form to avoid terminal artifacts
 		defaultPath := defaultHealthPath(stackNames)
-		var healthPath string
-		if err := huh.NewInput().
-			Title("Health check path").
-			Description("Path to check if your app is running").
-			Value(&healthPath).
-			Placeholder(defaultPath).
-			Run(); err != nil {
-			return err
-		}
-		if healthPath == "" {
-			healthPath = defaultPath
-		}
-
-		// Step 7: Pricing
-		var oneTimeStr, subStr string
+		var healthPath, oneTimeStr, subStr, memoryTier string
 		err = huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title("Health check path").
+					Description("Path to check if your app is running").
+					Value(&healthPath).
+					Placeholder(defaultPath),
+			),
 			huh.NewGroup(
 				huh.NewInput().
 					Title("One-time price (USD)").
@@ -202,24 +197,24 @@ var initCmd = &cobra.Command{
 					Description("Leave blank if not applicable").
 					Value(&subStr),
 			),
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Title("Resource tier").
+					Description("Minimum resources allocated to your app").
+					Options(
+						huh.NewOption("Hobby — 512 MB RAM, 1 vCPU ($6/mo)", "512"),
+						huh.NewOption("Starter — 1 GB RAM, 1 vCPU ($12/mo)", "1024"),
+						huh.NewOption("Pro — 2 GB RAM, 2 vCPU ($18/mo)", "2048"),
+						huh.NewOption("Business — 4 GB RAM, 4 vCPU ($24/mo)", "4096"),
+					).
+					Value(&memoryTier),
+			),
 		).Run()
 		if err != nil {
 			return err
 		}
-
-		// Step 8: Resources
-		var memoryTier string
-		if err := huh.NewSelect[string]().
-			Title("Resource tier").
-			Options(
-				huh.NewOption("512 MB ($6/mo)", "512"),
-				huh.NewOption("1024 MB ($12/mo)", "1024"),
-				huh.NewOption("2048 MB ($18/mo)", "2048"),
-				huh.NewOption("4096 MB ($24/mo)", "4096"),
-			).
-			Value(&memoryTier).
-			Run(); err != nil {
-			return err
+		if healthPath == "" {
+			healthPath = defaultPath
 		}
 
 		// Build KyperFile struct
@@ -300,10 +295,29 @@ func buildKyperFile(title, description, tagline, category string,
 
 	if mem := parseInt(memoryTier); mem > 0 {
 		kf.Resources.MinMemoryMB = mem
-		kf.Resources.MinCPU = 1
+		switch mem {
+		case 2048:
+			kf.Resources.MinCPU = 2
+		case 4096:
+			kf.Resources.MinCPU = 4
+		default:
+			kf.Resources.MinCPU = 1
+		}
 	}
 
 	return kf
+}
+
+// toHumanTitle converts a filesystem name like "my_app" or "my-project" to "My App" / "My Project".
+func toHumanTitle(s string) string {
+	s = strings.NewReplacer("_", " ", "-", " ").Replace(s)
+	words := strings.Fields(s)
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+		}
+	}
+	return strings.Join(words, " ")
 }
 
 func parsePrice(s string) *float64 {
