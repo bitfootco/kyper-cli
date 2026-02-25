@@ -55,6 +55,7 @@ kyper push
 | `kyper login` | Authenticate via browser |
 | `kyper init` | Interactive project setup wizard |
 | `kyper validate` | Validate `kyper.yml` locally |
+| `kyper tag` | Bump the version in `kyper.yml` (patch/minor/major) |
 | `kyper push` | Validate, archive, upload, and tail build log |
 | `kyper status` | Show app and latest version status |
 | `kyper logs` | Stream build logs for the latest version |

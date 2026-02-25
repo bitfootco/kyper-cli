@@ -102,11 +102,12 @@ Build a CLI experience on par with fly and terraform:
 - Fast startup (no interpreter overhead)
 
 ---
-Commands (10 total, all top-level — no subcommands)
+Commands (11 total, all top-level — no subcommands)
 
 kyper login       — Authenticate via browser (device auth flow)
 kyper init        — Interactive project setup wizard
 kyper validate    — Validate kyper.yml locally
+kyper tag         — Bump the version in kyper.yml (patch/minor/major)
 kyper push        — Validate + archive + upload + tail build log
 kyper status      — Show app and latest version status
 kyper logs        — Stream build logs for latest version
