@@ -5,7 +5,6 @@ go 1.23.0
 require (
 	github.com/charmbracelet/glamour v0.10.0
 	github.com/charmbracelet/huh v0.8.0
-	github.com/charmbracelet/huh/spinner v0.0.0-20241028115900-20a4d21717a8
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/spf13/cobra v1.8.1
 	gopkg.in/yaml.v3 v3.0.1

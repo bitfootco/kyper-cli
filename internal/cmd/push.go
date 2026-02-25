@@ -39,7 +39,8 @@ var pushCmd = &cobra.Command{
 		result := kyperfile.Validate(kf, true)
 		if !result.Valid {
 			if jsonOutput {
-				return ui.PrintJSON(result)
+				_ = ui.PrintJSON(result)
+				return fmt.Errorf("kyper.yml validation failed")
 			}
 			for _, e := range result.Errors {
 				ui.PrintError(e)
@@ -50,7 +51,7 @@ var pushCmd = &cobra.Command{
 			ui.PrintWarning(w)
 		}
 
-		slug := slugFromName(kf.Name)
+		slug := slugFromTitle(kf.Title)
 
 		// 3. Build archive
 		tmpDir := os.TempDir()
@@ -89,6 +90,9 @@ var pushCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("syncing app: %w", err)
 		}
+		if !jsonOutput {
+			ui.PrintSuccess("App synced")
+		}
 
 		// 5. Upload version
 		var vr *api.VersionResponse
@@ -99,6 +103,9 @@ var pushCmd = &cobra.Command{
 		})
 		if err != nil {
 			return fmt.Errorf("uploading version: %w", err)
+		}
+		if vr == nil {
+			return fmt.Errorf("uploading version: no response from server")
 		}
 
 		if !jsonOutput {
@@ -139,7 +146,7 @@ var pushCmd = &cobra.Command{
 
 func buildAppParams(kf *config.KyperFile) map[string]interface{} {
 	params := map[string]interface{}{
-		"title":       kf.Name,
+		"title":       kf.Title,
 		"description": kf.Description,
 		"category":    kf.Category,
 	}

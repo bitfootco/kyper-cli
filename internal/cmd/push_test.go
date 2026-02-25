@@ -58,7 +58,7 @@ func TestHumanizeBytes(t *testing.T) {
 func TestBuildAppParams(t *testing.T) {
 	price := 29.99
 	kf := &config.KyperFile{
-		Name:        "my-app",
+		Title:       "My App",
 		Description: "A test app",
 		Category:    "productivity",
 		Tagline:     "Short pitch",
@@ -69,8 +69,8 @@ func TestBuildAppParams(t *testing.T) {
 	}
 
 	params := buildAppParams(kf)
-	if params["title"] != "my-app" {
-		t.Errorf("expected title 'my-app', got %v", params["title"])
+	if params["title"] != "My App" {
+		t.Errorf("expected title 'My App', got %v", params["title"])
 	}
 	if params["pricing_type"] != "one_time" {
 		t.Errorf("expected pricing_type 'one_time', got %v", params["pricing_type"])

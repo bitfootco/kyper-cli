@@ -32,18 +32,18 @@ var initCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		defaultName := strings.ToLower(filepath.Base(cwd))
+		defaultTitle := filepath.Base(cwd)
 
 		// Step 1: App basics
-		var name, category, tagline, description string
+		var title, category, tagline, description string
 
 		err = huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
-					Title("App name").
-					Description("Lowercase, alphanumeric + hyphens. Becomes your app slug.").
-					Value(&name).
-					Placeholder(defaultName),
+					Title("App title").
+					Description("Human-readable display name (e.g. \"My App\"). Slug is auto-derived.").
+					Value(&title).
+					Placeholder(defaultTitle),
 				huh.NewSelect[string]().
 					Title("Category").
 					Options(categoryOptions()...).
@@ -64,8 +64,8 @@ var initCmd = &cobra.Command{
 			return err
 		}
 
-		if name == "" {
-			name = defaultName
+		if title == "" {
+			title = defaultTitle
 		}
 
 		// Step 2: Auto-detect
@@ -223,7 +223,7 @@ var initCmd = &cobra.Command{
 		}
 
 		// Build KyperFile struct
-		kf := buildKyperFile(name, description, tagline, category, processes,
+		kf := buildKyperFile(title, description, tagline, category, processes,
 			selectedDeps, onDeploy, healthPath, oneTimeStr, subStr, memoryTier)
 
 		// Step 9: Preview
@@ -262,12 +262,12 @@ var initCmd = &cobra.Command{
 	},
 }
 
-func buildKyperFile(name, description, tagline, category string,
+func buildKyperFile(title, description, tagline, category string,
 	processes map[string]string, deps []config.DepEntry,
 	onDeploy, healthPath, oneTimeStr, subStr, memoryTier string) *config.KyperFile {
 
 	kf := &config.KyperFile{
-		Name:        name,
+		Title:       title,
 		Version:     "0.1.0",
 		Description: description,
 		Category:    category,

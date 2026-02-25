@@ -11,7 +11,7 @@ func floatPtr(f float64) *float64 { return &f }
 
 func validKyperFile() *config.KyperFile {
 	return &config.KyperFile{
-		Name:        "my-app",
+		Title:       "My App",
 		Version:     "1.0.0",
 		Description: "A valid test app",
 		Category:    "productivity",
@@ -35,19 +35,19 @@ func TestValidFile(t *testing.T) {
 	}
 }
 
-func TestNameRequired(t *testing.T) {
+func TestTitleRequired(t *testing.T) {
 	kf := validKyperFile()
-	kf.Name = ""
+	kf.Title = ""
 	r := Validate(kf, false)
 	if r.Valid {
 		t.Error("expected invalid")
 	}
-	assertContainsError(t, r, "name is required")
+	assertContainsError(t, r, "title is required")
 }
 
-func TestNameTooLong(t *testing.T) {
+func TestTitleTooLong(t *testing.T) {
 	kf := validKyperFile()
-	kf.Name = strings.Repeat("a", 101)
+	kf.Title = strings.Repeat("a", 101)
 	r := Validate(kf, false)
 	assertContainsError(t, r, "100 characters")
 }
@@ -304,36 +304,6 @@ func TestDBWithHookNoWarning(t *testing.T) {
 	}
 }
 
-func TestNameFormatInvalid(t *testing.T) {
-	tests := []struct {
-		name string
-	}{
-		{"My App"},
-		{"UPPERCASE"},
-		{"has spaces"},
-		{"special!chars"},
-		{"-leading-dash"},
-		{"trailing-dash-"},
-	}
-	for _, tt := range tests {
-		kf := validKyperFile()
-		kf.Name = tt.name
-		r := Validate(kf, false)
-		assertContainsError(t, r, "lowercase alphanumeric")
-	}
-}
-
-func TestNameFormatValid(t *testing.T) {
-	tests := []string{"a", "my-app", "app123", "a-b-c", "x"}
-	for _, name := range tests {
-		kf := validKyperFile()
-		kf.Name = name
-		r := Validate(kf, false)
-		if !r.Valid {
-			t.Errorf("name %q should be valid, got errors: %v", name, r.Errors)
-		}
-	}
-}
 
 func TestPricingRequired(t *testing.T) {
 	kf := validKyperFile()

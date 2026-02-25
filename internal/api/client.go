@@ -242,7 +242,9 @@ func (c *Client) CreateVersion(slug, kyperYml, zipPath string) (*VersionResponse
 	if _, err := io.Copy(part, file); err != nil {
 		return nil, fmt.Errorf("copying zip to form: %w", err)
 	}
-	writer.Close()
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("finalizing multipart form: %w", err)
+	}
 
 	req, err := http.NewRequest("POST", c.BaseURL+"/api/v1/apps/"+slug+"/versions", body)
 	if err != nil {

@@ -2,7 +2,7 @@ package cmd
 
 import "testing"
 
-func TestSlugFromName(t *testing.T) {
+func TestSlugFromTitle(t *testing.T) {
 	tests := []struct {
 		input string
 		want  string
@@ -19,9 +19,9 @@ func TestSlugFromName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			got := slugFromName(tt.input)
+			got := slugFromTitle(tt.input)
 			if got != tt.want {
-				t.Errorf("slugFromName(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("slugFromTitle(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}

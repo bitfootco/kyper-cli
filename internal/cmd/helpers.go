@@ -48,8 +48,8 @@ func loadKyperYML() (*config.KyperFile, []byte, error) {
 
 var slugRegexp = regexp.MustCompile(`[^a-z0-9]+`)
 
-func slugFromName(name string) string {
-	s := strings.ToLower(name)
+func slugFromTitle(title string) string {
+	s := strings.ToLower(title)
 	s = slugRegexp.ReplaceAllString(s, "-")
 	s = strings.Trim(s, "-")
 	return s

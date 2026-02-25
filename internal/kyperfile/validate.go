@@ -53,7 +53,6 @@ var DB_DEPS = map[string]bool{
 }
 
 var semverRegexp = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
-var nameRegexp = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$`)
 
 type ValidationResult struct {
 	Valid    bool     `json:"valid"`
@@ -66,7 +65,7 @@ type ValidationResult struct {
 func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	r := &ValidationResult{Valid: true}
 
-	validateName(kf, r)
+	validateTitle(kf, r)
 	validateVersion(kf, r)
 	validateCategory(kf, r)
 	validateDescription(kf, r)
@@ -92,16 +91,13 @@ func addWarning(r *ValidationResult, msg string) {
 	r.Warnings = append(r.Warnings, msg)
 }
 
-func validateName(kf *config.KyperFile, r *ValidationResult) {
-	if kf.Name == "" {
-		addError(r, "name is required")
+func validateTitle(kf *config.KyperFile, r *ValidationResult) {
+	if kf.Title == "" {
+		addError(r, "title is required (human-readable display name, e.g. \"My App\")")
 		return
 	}
-	if len(kf.Name) > 100 {
-		addError(r, "name must be 100 characters or fewer")
-	}
-	if !nameRegexp.MatchString(kf.Name) {
-		addError(r, "name must be lowercase alphanumeric with hyphens (e.g., my-app)")
+	if len(kf.Title) > 100 {
+		addError(r, "title must be 100 characters or fewer")
 	}
 }
 

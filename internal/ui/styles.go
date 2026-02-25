@@ -11,10 +11,14 @@ var (
 	Dim    = lipgloss.Color("#666666")
 	White  = lipgloss.Color("#FFFFFF")
 
+	// Adaptive colors (auto-adjust for light/dark terminals)
+	SpinnerColor = lipgloss.AdaptiveColor{Light: "#555555", Dark: "#AAAAAA"}
+
 	// Text styles
-	Bold      = lipgloss.NewStyle().Bold(true)
-	DimStyle  = lipgloss.NewStyle().Foreground(Dim)
-	Label     = lipgloss.NewStyle().Foreground(Blue).Bold(true)
+	Bold         = lipgloss.NewStyle().Bold(true)
+	DimStyle     = lipgloss.NewStyle().Foreground(Dim)
+	SpinnerStyle = lipgloss.NewStyle().Foreground(SpinnerColor)
+	Label        = lipgloss.NewStyle().Foreground(Blue).Bold(true)
 	Success   = lipgloss.NewStyle().Foreground(Green)
 	Error     = lipgloss.NewStyle().Foreground(Red)
 	Warning   = lipgloss.NewStyle().Foreground(Yellow)

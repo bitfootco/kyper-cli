@@ -26,7 +26,7 @@ var statusCmd = &cobra.Command{
 			return err
 		}
 
-		slug := slugFromName(kf.Name)
+		slug := slugFromTitle(kf.Title)
 		status, err := client.GetAppStatus(slug)
 		if err != nil {
 			return fmt.Errorf("fetching status: %w", err)

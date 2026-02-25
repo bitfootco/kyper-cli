@@ -9,7 +9,7 @@ import (
 )
 
 type KyperFile struct {
-	Name        string            `yaml:"name"`
+	Title       string            `yaml:"title"`
 	Version     string            `yaml:"version"`
 	Description string            `yaml:"description"`
 	Tagline     string            `yaml:"tagline,omitempty"`
