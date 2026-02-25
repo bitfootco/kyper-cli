@@ -28,10 +28,10 @@ func Create(dir, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	defer outFile.Close()
+	defer func() { _ = outFile.Close() }()
 
 	w := zip.NewWriter(outFile)
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -85,7 +85,7 @@ func Create(dir, outputPath string) error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		_, err = io.Copy(writer, file)
 		return err

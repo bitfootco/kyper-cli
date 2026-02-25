@@ -17,7 +17,9 @@ func TestPrintJSON(t *testing.T) {
 		t.Fatalf("PrintJSON returned error: %v", err)
 	}
 
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
 	os.Stdout = old
 
 	var buf bytes.Buffer

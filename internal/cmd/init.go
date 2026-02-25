@@ -360,7 +360,7 @@ func parsePrice(s string) *float64 {
 
 func parseInt(s string) int {
 	var n int
-	fmt.Sscanf(s, "%d", &n)
+	_, _ = fmt.Sscanf(s, "%d", &n)
 	return n
 }
 

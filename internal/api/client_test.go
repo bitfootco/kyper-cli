@@ -121,7 +121,7 @@ func TestCreateVersion(t *testing.T) {
 		file, header, _ := r.FormFile("source_zip")
 		if file != nil {
 			gotZipName = header.Filename
-			file.Close()
+			_ = file.Close()
 		}
 
 		w.WriteHeader(201)

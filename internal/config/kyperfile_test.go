@@ -26,7 +26,9 @@ healthcheck:
   interval: 30
   timeout: 10
 `
-	os.WriteFile(path, []byte(content), 0644)
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	kf, raw, err := LoadKyperFile(path)
 	if err != nil {
@@ -78,7 +80,9 @@ processes:
 deps:
   - postgres
 `
-	os.WriteFile(path, []byte(content), 0644)
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	kf, _, err := LoadKyperFile(path)
 	if err != nil {
@@ -106,7 +110,9 @@ processes:
 deps:
   - "redis:7"
 `
-	os.WriteFile(path, []byte(content), 0644)
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	kf, _, err := LoadKyperFile(path)
 	if err != nil {
@@ -135,7 +141,9 @@ deps:
   - postgres: "16"
     storage_gb: 50
 `
-	os.WriteFile(path, []byte(content), 0644)
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	kf, _, err := LoadKyperFile(path)
 	if err != nil {
@@ -160,7 +168,9 @@ func TestLoadKyperFileMissing(t *testing.T) {
 func TestLoadKyperFileMalformed(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "kyper.yml")
-	os.WriteFile(path, []byte("{{{{invalid yaml"), 0644)
+	if err := os.WriteFile(path, []byte("{{{{invalid yaml"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	_, _, err := LoadKyperFile(path)
 	if err == nil {

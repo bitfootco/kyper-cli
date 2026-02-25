@@ -34,7 +34,7 @@ func TestCreateZip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("opening zip: %v", err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	files := make(map[string]bool)
 	for _, f := range r.File {
@@ -74,7 +74,7 @@ func TestCreateZipExcludesGit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("opening zip: %v", err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	for _, f := range r.File {
 		if filepath.Base(f.Name) == ".git" || filepath.Dir(f.Name) == ".git" {
@@ -105,7 +105,7 @@ func TestCreateZipExcludesNodeModules(t *testing.T) {
 	if err != nil {
 		t.Fatalf("opening zip: %v", err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	for _, f := range r.File {
 		if filepath.Base(filepath.Dir(f.Name)) == "node_modules" || filepath.Base(f.Name) == "node_modules" {
@@ -136,7 +136,7 @@ func TestCreateZipRespectsKyperignore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("opening zip: %v", err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	for _, f := range r.File {
 		if f.Name == "secret.key" {
@@ -164,7 +164,7 @@ func TestCreateZipExcludesLogFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("opening zip: %v", err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	for _, f := range r.File {
 		if f.Name == "debug.log" {

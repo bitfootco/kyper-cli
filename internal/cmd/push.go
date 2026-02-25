@@ -56,7 +56,7 @@ var pushCmd = &cobra.Command{
 		// 3. Build archive
 		tmpDir := os.TempDir()
 		zipPath := filepath.Join(tmpDir, slug+"-source.zip")
-		defer os.Remove(zipPath)
+		defer func() { _ = os.Remove(zipPath) }()
 
 		err = ui.RunWithSpinner("Building archive...", jsonOutput, func() error {
 			return archive.Create(".", zipPath)

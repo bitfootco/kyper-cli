@@ -8,7 +8,9 @@ import (
 
 func TestDetectDepsFromGemfile(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "Gemfile"), []byte("gem 'pg'\ngem 'redis'\n"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "Gemfile"), []byte("gem 'pg'\ngem 'redis'\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectDeps(dir)
 	found := make(map[string]bool)
@@ -26,7 +28,9 @@ func TestDetectDepsFromGemfile(t *testing.T) {
 func TestDetectDepsFromPackageJSON(t *testing.T) {
 	dir := t.TempDir()
 	pkg := `{"dependencies": {"pg": "^8.0.0", "ioredis": "^5.0.0"}}`
-	os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkg), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkg), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectDeps(dir)
 	found := make(map[string]bool)
@@ -43,7 +47,9 @@ func TestDetectDepsFromPackageJSON(t *testing.T) {
 
 func TestDetectDepsFromRequirements(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "requirements.txt"), []byte("psycopg2==2.9.9\nredis>=4.0\n"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "requirements.txt"), []byte("psycopg2==2.9.9\nredis>=4.0\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectDeps(dir)
 	found := make(map[string]bool)
@@ -60,8 +66,12 @@ func TestDetectDepsFromRequirements(t *testing.T) {
 
 func TestDetectDepsDeduplication(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "Gemfile"), []byte("gem 'pg'\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "docker-compose.yml"), []byte("services:\n  db:\n    image: postgres:16\n"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "Gemfile"), []byte("gem 'pg'\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "docker-compose.yml"), []byte("services:\n  db:\n    image: postgres:16\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectDeps(dir)
 	count := 0

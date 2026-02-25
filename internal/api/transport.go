@@ -46,7 +46,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		if resp.StatusCode < 500 || attempt >= len(retryDelays) {
 			return resp, nil
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		time.Sleep(retryDelays[attempt])
 		// Re-clone for retry
 		r = req.Clone(req.Context())

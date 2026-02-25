@@ -8,7 +8,9 @@ import (
 
 func TestDetectProcessesFromProcfile(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "Procfile"), []byte("web: bin/rails server\nworker: bundle exec sidekiq\n"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "Procfile"), []byte("web: bin/rails server\nworker: bundle exec sidekiq\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectProcesses(dir)
 	if len(results) != 2 {
@@ -28,7 +30,9 @@ func TestDetectProcessesFromProcfile(t *testing.T) {
 
 func TestDetectProcessesFromDockerfile(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM ruby:3.2\nCMD [\"bin/rails\", \"server\"]\n"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM ruby:3.2\nCMD [\"bin/rails\", \"server\"]\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectProcesses(dir)
 	if len(results) == 0 {
@@ -42,7 +46,9 @@ func TestDetectProcessesFromDockerfile(t *testing.T) {
 func TestDetectProcessesFromPackageJSON(t *testing.T) {
 	dir := t.TempDir()
 	pkg := `{"scripts": {"start": "node server.js"}}`
-	os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkg), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkg), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectProcesses(dir)
 	if len(results) == 0 {

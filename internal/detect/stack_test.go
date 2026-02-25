@@ -8,8 +8,12 @@ import (
 
 func TestDetectRails(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "config"), 0755)
-	os.WriteFile(filepath.Join(dir, "config", "application.rb"), []byte(""), 0644)
+	if err := os.MkdirAll(filepath.Join(dir, "config"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "config", "application.rb"), []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectStack(dir)
 	if len(results) == 0 {
@@ -22,7 +26,9 @@ func TestDetectRails(t *testing.T) {
 
 func TestDetectDjango(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "manage.py"), []byte(""), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "manage.py"), []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectStack(dir)
 	if len(results) == 0 {
@@ -35,7 +41,9 @@ func TestDetectDjango(t *testing.T) {
 
 func TestDetectGo(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module test"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module test"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectStack(dir)
 	if len(results) == 0 {
@@ -49,7 +57,9 @@ func TestDetectGo(t *testing.T) {
 func TestDetectExpress(t *testing.T) {
 	dir := t.TempDir()
 	pkg := `{"dependencies": {"express": "^4.18.0"}}`
-	os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkg), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkg), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectStack(dir)
 	found := false
@@ -66,7 +76,9 @@ func TestDetectExpress(t *testing.T) {
 func TestDetectNext(t *testing.T) {
 	dir := t.TempDir()
 	pkg := `{"dependencies": {"next": "^14.0.0", "react": "^18.0.0"}}`
-	os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkg), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkg), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectStack(dir)
 	found := false
@@ -82,8 +94,12 @@ func TestDetectNext(t *testing.T) {
 
 func TestDetectPrisma(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "prisma"), 0755)
-	os.WriteFile(filepath.Join(dir, "prisma", "schema.prisma"), []byte(""), 0644)
+	if err := os.MkdirAll(filepath.Join(dir, "prisma"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "prisma", "schema.prisma"), []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	results := DetectStack(dir)
 	found := false

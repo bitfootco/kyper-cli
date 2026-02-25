@@ -21,11 +21,11 @@ func TestTailLogSuccess(t *testing.T) {
 		n := atomic.AddInt32(&calls, 1)
 		switch n {
 		case 1:
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"status": "building", "log": "Step 1\n", "cursor": 7, "complete": false,
 			})
 		default:
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"status": "built", "log": "Done\n", "cursor": 12, "complete": true,
 			})
 		}
@@ -43,7 +43,7 @@ func TestTailLogSuccess(t *testing.T) {
 
 func TestTailLogBuildFailed(t *testing.T) {
 	client, srv := testAPIClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "build_failed", "log": "Error: compilation failed\n", "cursor": 25, "complete": true,
 		})
 	}))
@@ -62,13 +62,13 @@ func TestTailLogStartCursor(t *testing.T) {
 	var gotCursor string
 	client, srv := testAPIClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotCursor = r.URL.Query().Get("cursor")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "built", "log": "", "cursor": 50, "complete": true,
 		})
 	}))
 	defer srv.Close()
 
-	tailLog(client, 1, 42)
+	_, _ = tailLog(client, 1, 42)
 	if gotCursor != "42" {
 		t.Errorf("expected cursor=42, got %q", gotCursor)
 	}

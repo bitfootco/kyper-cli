@@ -126,7 +126,7 @@ func (c *Client) doJSON(method, path string, body interface{}, result interface{
 	if err != nil {
 		return fmt.Errorf("making request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -236,7 +236,7 @@ func (c *Client) CreateVersion(slug, kyperYml, zipPath string) (*VersionResponse
 	if err != nil {
 		return nil, fmt.Errorf("opening zip file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	part, err := writer.CreateFormFile("source_zip", filepath.Base(zipPath))
 	if err != nil {
@@ -260,7 +260,7 @@ func (c *Client) CreateVersion(slug, kyperYml, zipPath string) (*VersionResponse
 	if err != nil {
 		return nil, fmt.Errorf("uploading version: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -23,7 +23,9 @@ DEPENDENCIES
   redis
   rails
 `
-	os.WriteFile(filepath.Join(dir, "Gemfile.lock"), []byte(lockContent), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "Gemfile.lock"), []byte(lockContent), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	deps := []DepResult{
 		{Name: "postgres", Source: "Gemfile"},
@@ -61,7 +63,9 @@ func TestSuggestDepVersionsFromPackageLock(t *testing.T) {
     }
   }
 }`
-	os.WriteFile(filepath.Join(dir, "package-lock.json"), []byte(lockContent), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "package-lock.json"), []byte(lockContent), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	deps := []DepResult{
 		{Name: "postgres", Source: "package.json"},
@@ -100,7 +104,9 @@ func TestSuggestDepVersionsSkipsUnwantedDeps(t *testing.T) {
     pg (1.5.6)
     redis (5.2.0)
 `
-	os.WriteFile(filepath.Join(dir, "Gemfile.lock"), []byte(lockContent), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "Gemfile.lock"), []byte(lockContent), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	// Only ask for postgres, not redis
 	deps := []DepResult{{Name: "postgres", Source: "Gemfile"}}
