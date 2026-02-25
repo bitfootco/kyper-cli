@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/bitfootco/kyper-cli/internal/kyperfile"
 	"github.com/bitfootco/kyper-cli/internal/ui"
@@ -51,7 +50,6 @@ var validateCmd = &cobra.Command{
 		}
 
 		ui.PrintError(fmt.Sprintf("%d error(s), %d warning(s)", len(result.Errors), len(result.Warnings)))
-		os.Exit(1)
-		return nil
+		return fmt.Errorf("kyper.yml validation failed")
 	},
 }

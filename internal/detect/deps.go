@@ -144,10 +144,12 @@ func detectPythonDeps(path, source string, addDep func(string, string)) {
 func detectPipfileDeps(path string, addDep func(string, string)) {
 	lines := readLines(path)
 	for _, line := range lines {
-		for lib, dep := range pythonMappings {
-			if strings.Contains(line, lib) {
-				addDep(dep, "Pipfile")
-			}
+		// Extract the package name (TOML key format: name = "version")
+		key := strings.SplitN(line, "=", 2)[0]
+		key = strings.TrimSpace(key)
+		key = strings.Trim(key, "\"'")
+		if dep, ok := pythonMappings[key]; ok {
+			addDep(dep, "Pipfile")
 		}
 	}
 }

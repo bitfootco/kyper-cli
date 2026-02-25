@@ -85,6 +85,46 @@ func TestTransportRetries5xx(t *testing.T) {
 	}
 }
 
+func TestTransportNoRetryOnPOST(t *testing.T) {
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.WriteHeader(500)
+	}))
+	defer srv.Close()
+
+	client := &http.Client{Transport: &Transport{Token: "tok"}}
+	req, _ := http.NewRequest("POST", srv.URL+"/test", nil)
+	resp, _ := client.Do(req)
+
+	if resp.StatusCode != 500 {
+		t.Errorf("expected 500, got %d", resp.StatusCode)
+	}
+	if atomic.LoadInt32(&attempts) != 1 {
+		t.Errorf("expected 1 attempt for POST (no retry), got %d", atomic.LoadInt32(&attempts))
+	}
+}
+
+func TestTransportNoRetryOnDELETE(t *testing.T) {
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.WriteHeader(502)
+	}))
+	defer srv.Close()
+
+	client := &http.Client{Transport: &Transport{Token: "tok"}}
+	req, _ := http.NewRequest("DELETE", srv.URL+"/test", nil)
+	resp, _ := client.Do(req)
+
+	if resp.StatusCode != 502 {
+		t.Errorf("expected 502, got %d", resp.StatusCode)
+	}
+	if atomic.LoadInt32(&attempts) != 1 {
+		t.Errorf("expected 1 attempt for DELETE (no retry), got %d", atomic.LoadInt32(&attempts))
+	}
+}
+
 func TestTransportNoRetryOn4xx(t *testing.T) {
 	var attempts int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

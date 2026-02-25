@@ -92,10 +92,12 @@ var initCmd = &cobra.Command{
 		processes := make(map[string]string)
 		if len(detectedProcesses) > 0 {
 			var useDetected bool
-			huh.NewConfirm().
+			if err := huh.NewConfirm().
 				Title("Use detected processes?").
 				Value(&useDetected).
-				Run()
+				Run(); err != nil {
+				return err
+			}
 			if useDetected {
 				for _, p := range detectedProcesses {
 					processes[p.Name] = p.Command
@@ -105,11 +107,13 @@ var initCmd = &cobra.Command{
 
 		if _, ok := processes["web"]; !ok {
 			var webCmd string
-			huh.NewInput().
+			if err := huh.NewInput().
 				Title("Web process command").
 				Description("Required. The command to start your web server.").
 				Value(&webCmd).
-				Run()
+				Run(); err != nil {
+				return err
+			}
 			processes["web"] = webCmd
 		}
 
@@ -121,11 +125,13 @@ var initCmd = &cobra.Command{
 				depOptions[i] = huh.NewOption(fmt.Sprintf("%s (from %s)", d.Name, d.Source), d.Name)
 			}
 			var chosen []string
-			huh.NewMultiSelect[string]().
+			if err := huh.NewMultiSelect[string]().
 				Title("Select dependencies").
 				Options(depOptions...).
 				Value(&chosen).
-				Run()
+				Run(); err != nil {
+				return err
+			}
 
 			// Suggest versions from lockfiles
 			versionSuggestions := detect.SuggestDepVersions(cwd, detectedDeps)
@@ -155,12 +161,14 @@ var initCmd = &cobra.Command{
 		}
 		if hasDB {
 			suggestion := suggestHook(stackNames)
-			huh.NewInput().
+			if err := huh.NewInput().
 				Title("Deploy hook").
 				Description("Run after first deployment (e.g., database migration)").
 				Value(&onDeploy).
 				Placeholder(suggestion).
-				Run()
+				Run(); err != nil {
+				return err
+			}
 			if onDeploy == "" {
 				onDeploy = suggestion
 			}
@@ -169,12 +177,14 @@ var initCmd = &cobra.Command{
 		// Step 6: Health check
 		defaultPath := defaultHealthPath(stackNames)
 		var healthPath string
-		huh.NewInput().
+		if err := huh.NewInput().
 			Title("Health check path").
 			Description("Path to check if your app is running").
 			Value(&healthPath).
 			Placeholder(defaultPath).
-			Run()
+			Run(); err != nil {
+			return err
+		}
 		if healthPath == "" {
 			healthPath = defaultPath
 		}
@@ -199,7 +209,7 @@ var initCmd = &cobra.Command{
 
 		// Step 8: Resources
 		var memoryTier string
-		huh.NewSelect[string]().
+		if err := huh.NewSelect[string]().
 			Title("Resource tier").
 			Options(
 				huh.NewOption("512 MB ($6/mo)", "512"),
@@ -208,7 +218,9 @@ var initCmd = &cobra.Command{
 				huh.NewOption("4096 MB ($24/mo)", "4096"),
 			).
 			Value(&memoryTier).
-			Run()
+			Run(); err != nil {
+			return err
+		}
 
 		// Build KyperFile struct
 		kf := buildKyperFile(name, description, tagline, category, processes,
@@ -229,10 +241,12 @@ var initCmd = &cobra.Command{
 		}
 
 		var confirm bool
-		huh.NewConfirm().
+		if err := huh.NewConfirm().
 			Title("Write kyper.yml?").
 			Value(&confirm).
-			Run()
+			Run(); err != nil {
+			return err
+		}
 
 		if !confirm {
 			fmt.Println("Cancelled.")

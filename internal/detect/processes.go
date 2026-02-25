@@ -17,6 +17,15 @@ type ProcessResult struct {
 func DetectProcesses(dir string) []ProcessResult {
 	var results []ProcessResult
 
+	hasWeb := func() bool {
+		for _, r := range results {
+			if r.Name == "web" {
+				return true
+			}
+		}
+		return false
+	}
+
 	// Check Procfile
 	procfile := filepath.Join(dir, "Procfile")
 	if lines := readLines(procfile); len(lines) > 0 {
@@ -38,15 +47,7 @@ func DetectProcesses(dir string) []ProcessResult {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(strings.ToUpper(line), "CMD ") {
 				cmd := strings.TrimSpace(line[4:])
-				// Only add web if not already found
-				hasWeb := false
-				for _, r := range results {
-					if r.Name == "web" {
-						hasWeb = true
-						break
-					}
-				}
-				if !hasWeb {
+				if !hasWeb() {
 					results = append(results, ProcessResult{Name: "web", Command: cmd, Source: "Dockerfile"})
 				}
 				break
@@ -60,17 +61,8 @@ func DetectProcesses(dir string) []ProcessResult {
 		var pkg map[string]interface{}
 		if json.Unmarshal(data, &pkg) == nil {
 			if scripts, ok := pkg["scripts"].(map[string]interface{}); ok {
-				if start, ok := scripts["start"].(string); ok {
-					hasWeb := false
-					for _, r := range results {
-						if r.Name == "web" {
-							hasWeb = true
-							break
-						}
-					}
-					if !hasWeb {
-						results = append(results, ProcessResult{Name: "web", Command: start, Source: "package.json"})
-					}
+				if start, ok := scripts["start"].(string); ok && !hasWeb() {
+					results = append(results, ProcessResult{Name: "web", Command: start, Source: "package.json"})
 				}
 			}
 		}

@@ -27,10 +27,6 @@ func (e *APIError) IsUnauthorized() bool {
 	return e.StatusCode == 401
 }
 
-func (e *APIError) IsConflict() bool {
-	return e.StatusCode == 409
-}
-
 // IsNotFound checks if an error is a 404 API error.
 func IsNotFound(err error) bool {
 	if apiErr, ok := err.(*APIError); ok {
@@ -47,10 +43,3 @@ func IsUnauthorized(err error) bool {
 	return false
 }
 
-// IsConflict checks if an error is a 409 API error.
-func IsConflict(err error) bool {
-	if apiErr, ok := err.(*APIError); ok {
-		return apiErr.IsConflict()
-	}
-	return false
-}

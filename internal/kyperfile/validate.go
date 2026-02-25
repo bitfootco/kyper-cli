@@ -100,6 +100,9 @@ func validateName(kf *config.KyperFile, r *ValidationResult) {
 	if len(kf.Name) > 100 {
 		addError(r, "name must be 100 characters or fewer")
 	}
+	if !nameRegexp.MatchString(kf.Name) {
+		addError(r, "name must be lowercase alphanumeric with hyphens (e.g., my-app)")
+	}
 }
 
 func validateVersion(kf *config.KyperFile, r *ValidationResult) {
@@ -222,6 +225,10 @@ func validateHealthcheck(kf *config.KyperFile, r *ValidationResult) {
 }
 
 func validatePricing(kf *config.KyperFile, r *ValidationResult) {
+	if kf.Pricing.OneTime == nil && kf.Pricing.Subscription == nil {
+		addError(r, "at least one pricing option is required (one_time or subscription)")
+		return
+	}
 	if kf.Pricing.OneTime != nil && *kf.Pricing.OneTime < 1.0 {
 		addError(r, "pricing.one_time must be at least $1.00")
 	}

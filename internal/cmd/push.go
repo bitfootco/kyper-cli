@@ -123,7 +123,9 @@ var pushCmd = &cobra.Command{
 					Value(&retry).
 					Run()
 				if retry {
-					client.RetryVersion(vr.ID)
+					if _, err := client.RetryVersion(vr.ID); err != nil {
+						return fmt.Errorf("retrying build: %w", err)
+					}
 					return tailLog(client, vr.ID, 0)
 				}
 			}
@@ -143,15 +145,7 @@ func buildAppParams(kf *config.KyperFile) map[string]interface{} {
 		params["tagline"] = kf.Tagline
 	}
 
-	pricingType := derivePricingType(kf)
-	params["pricing_type"] = pricingType
-
-	if kf.Pricing.OneTime != nil {
-		params["one_time_price_cents"] = int(math.Round(*kf.Pricing.OneTime * 100))
-	}
-	if kf.Pricing.Subscription != nil {
-		params["subscription_price_cents"] = int(math.Round(*kf.Pricing.Subscription * 100))
-	}
+	applyPricingParams(kf, params)
 
 	// Build tech_stack string from processes and deps
 	var stacks []string
@@ -174,17 +168,19 @@ func buildUpdateParams(kf *config.KyperFile) map[string]interface{} {
 		params["tagline"] = kf.Tagline
 	}
 
-	pricingType := derivePricingType(kf)
-	params["pricing_type"] = pricingType
+	applyPricingParams(kf, params)
 
+	return params
+}
+
+func applyPricingParams(kf *config.KyperFile, params map[string]interface{}) {
+	params["pricing_type"] = derivePricingType(kf)
 	if kf.Pricing.OneTime != nil {
 		params["one_time_price_cents"] = int(math.Round(*kf.Pricing.OneTime * 100))
 	}
 	if kf.Pricing.Subscription != nil {
 		params["subscription_price_cents"] = int(math.Round(*kf.Pricing.Subscription * 100))
 	}
-
-	return params
 }
 
 func derivePricingType(kf *config.KyperFile) string {
@@ -199,7 +195,7 @@ func derivePricingType(kf *config.KyperFile) string {
 	if hasSub {
 		return "subscription"
 	}
-	return "one_time"
+	return ""
 }
 
 func humanizeBytes(b int64) string {

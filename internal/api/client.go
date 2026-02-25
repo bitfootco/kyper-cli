@@ -192,12 +192,6 @@ func (c *Client) GetMe() (*User, error) {
 
 // Apps
 
-func (c *Client) ListApps() ([]App, error) {
-	var apps []App
-	err := c.doJSON("GET", "/api/v1/apps", nil, &apps)
-	return apps, err
-}
-
 func (c *Client) GetApp(slug string) (*App, error) {
 	var app App
 	err := c.doJSON("GET", "/api/v1/apps/"+slug, nil, &app)

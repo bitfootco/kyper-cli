@@ -20,7 +20,9 @@ var defaultExcludes = []string{
 // default exclude patterns and .kyperignore rules.
 func Create(dir, outputPath string) error {
 	ignorePatterns := loadIgnorePatterns(dir)
-	allPatterns := append(defaultExcludes, ignorePatterns...)
+	allPatterns := make([]string, 0, len(defaultExcludes)+len(ignorePatterns))
+	allPatterns = append(allPatterns, defaultExcludes...)
+	allPatterns = append(allPatterns, ignorePatterns...)
 
 	outFile, err := os.Create(outputPath)
 	if err != nil {

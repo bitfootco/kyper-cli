@@ -7,6 +7,8 @@ import (
 	"github.com/bitfootco/kyper-cli/internal/config"
 )
 
+func floatPtr(f float64) *float64 { return &f }
+
 func validKyperFile() *config.KyperFile {
 	return &config.KyperFile{
 		Name:        "my-app",
@@ -18,6 +20,9 @@ func validKyperFile() *config.KyperFile {
 		},
 		Processes: map[string]string{
 			"web": "bin/start",
+		},
+		Pricing: config.PricingConfig{
+			OneTime: floatPtr(29.99),
 		},
 	}
 }
@@ -297,6 +302,45 @@ func TestDBWithHookNoWarning(t *testing.T) {
 			t.Error("should not warn about hooks.on_deploy when set")
 		}
 	}
+}
+
+func TestNameFormatInvalid(t *testing.T) {
+	tests := []struct {
+		name string
+	}{
+		{"My App"},
+		{"UPPERCASE"},
+		{"has spaces"},
+		{"special!chars"},
+		{"-leading-dash"},
+		{"trailing-dash-"},
+	}
+	for _, tt := range tests {
+		kf := validKyperFile()
+		kf.Name = tt.name
+		r := Validate(kf, false)
+		assertContainsError(t, r, "lowercase alphanumeric")
+	}
+}
+
+func TestNameFormatValid(t *testing.T) {
+	tests := []string{"a", "my-app", "app123", "a-b-c", "x"}
+	for _, name := range tests {
+		kf := validKyperFile()
+		kf.Name = name
+		r := Validate(kf, false)
+		if !r.Valid {
+			t.Errorf("name %q should be valid, got errors: %v", name, r.Errors)
+		}
+	}
+}
+
+func TestPricingRequired(t *testing.T) {
+	kf := validKyperFile()
+	kf.Pricing.OneTime = nil
+	kf.Pricing.Subscription = nil
+	r := Validate(kf, false)
+	assertContainsError(t, r, "at least one pricing option")
 }
 
 func assertContainsError(t *testing.T, r *ValidationResult, substr string) {

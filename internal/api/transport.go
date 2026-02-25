@@ -31,7 +31,11 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	r.Header.Set("User-Agent", "kyper-cli/"+version.Version)
 
-	// Retry logic for 5xx errors
+	// Only retry idempotent methods (GET, HEAD) on 5xx errors
+	if r.Method != "GET" && r.Method != "HEAD" {
+		return t.base().RoundTrip(r)
+	}
+
 	var resp *http.Response
 	var err error
 	backoffs := []time.Duration{0, 1 * time.Second, 2 * time.Second}

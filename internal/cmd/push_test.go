@@ -16,7 +16,7 @@ func TestDerivePricingType(t *testing.T) {
 		{"both", floatPtr(29.99), floatPtr(9.99), "both"},
 		{"one_time only", floatPtr(29.99), nil, "one_time"},
 		{"subscription only", nil, floatPtr(9.99), "subscription"},
-		{"neither", nil, nil, "one_time"},
+		{"neither", nil, nil, ""},
 	}
 
 	for _, tt := range tests {
