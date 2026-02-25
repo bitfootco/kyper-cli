@@ -86,10 +86,48 @@ func tailLog(client *api.Client, versionID int, startCursor int) error {
 	}
 }
 
+// waitForBuild polls until the build completes, showing a spinner.
+// Returns the final status string and, on build_failed, the full build log.
+func waitForBuild(client *api.Client, versionID int, jsonMode bool) (status string, buildLog string, err error) {
+	spinErr := ui.RunWithSpinner("Building...", jsonMode, func() error {
+		cursor := 0
+		timeout := time.After(30 * time.Minute)
+		for {
+			select {
+			case <-timeout:
+				return fmt.Errorf("build timed out after 30 minutes")
+			default:
+			}
+			bl, pollErr := client.GetBuildLog(versionID, cursor)
+			if pollErr != nil {
+				return fmt.Errorf("fetching build log: %w", pollErr)
+			}
+			cursor = bl.Cursor
+			if bl.Complete {
+				status = bl.Status
+				return nil
+			}
+			time.Sleep(2 * time.Second)
+		}
+	})
+	if spinErr != nil {
+		return "", "", spinErr
+	}
+	if status == "build_failed" {
+		full, logErr := client.GetBuildLog(versionID, 0)
+		if logErr == nil && full != nil {
+			buildLog = full.Log
+		}
+	}
+	return status, buildLog, nil
+}
+
 func printBuildStatus(status string) {
 	switch status {
 	case "published", "built":
 		fmt.Println(ui.SuccessBanner.Render("✓ Build succeeded"))
+	case "in_review":
+		fmt.Println(ui.SuccessBanner.Render("✓ Build succeeded — submitted for review"))
 	case "build_failed":
 		fmt.Println(ui.ErrorBanner.Render("✗ Build failed"))
 	case "cancelled":

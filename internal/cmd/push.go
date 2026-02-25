@@ -109,22 +109,31 @@ var pushCmd = &cobra.Command{
 		}
 
 		if !jsonOutput {
-			ui.PrintSuccess(fmt.Sprintf("Version %s uploaded (ID: %d)", vr.Version, vr.ID))
+			ui.PrintSuccess(fmt.Sprintf("Version %s uploaded", vr.Version))
 			fmt.Println()
 		}
 
-		// 6. Tail build log
-		if err := tailLog(client, vr.ID, 0); err != nil {
+		// 6. Wait for build
+		finalStatus, buildLog, err := waitForBuild(client, vr.ID, jsonOutput)
+		if err != nil {
 			return err
 		}
 
-		// 7. Check final status and prompt retry on failure
-		finalStatus, err := client.GetAppStatus(slug)
-		if err == nil && finalStatus.LatestVersion != nil && finalStatus.LatestVersion.Status == "build_failed" {
+		if !jsonOutput {
+			printBuildStatus(finalStatus)
+		}
+
+		// 7. On failure: show log and prompt retry
+		if finalStatus == "build_failed" {
+			if !jsonOutput && buildLog != "" {
+				fmt.Println()
+				fmt.Print(buildLog)
+				fmt.Println()
+			}
 			if !jsonOutput {
 				var retry bool
 				if err := huh.NewConfirm().
-					Title("Build failed. Retry?").
+					Title("Retry build?").
 					Affirmative("Yes").
 					Negative("No").
 					Value(&retry).
