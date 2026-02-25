@@ -23,8 +23,9 @@ archives:
 
 brews:
   - repository:
-      owner: kyper-shop
+      owner: bitfootco
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     name: kyper
     homepage: "https://kyper.shop"
     description: "CLI for the Kyper marketplace"

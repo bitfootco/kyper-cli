@@ -22,6 +22,9 @@ jobs:
       - name: Test
         run: go test -race ./...
 
+      - name: Build
+        run: go build ./cmd/kyper
+
   lint:
     runs-on: ubuntu-latest
     steps:
