@@ -9,7 +9,7 @@ import (
 func TestLoadKyperFileValid(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "kyper.yml")
-	content := `title: My App
+	content := `name: My App
 version: 1.0.0
 description: A test app
 category: productivity
@@ -35,8 +35,8 @@ healthcheck:
 	if len(raw) == 0 {
 		t.Error("expected raw bytes")
 	}
-	if kf.Title != "My App" {
-		t.Errorf("expected title 'My App', got %q", kf.Title)
+	if kf.Name != "My App" {
+		t.Errorf("expected title 'My App', got %q", kf.Name)
 	}
 	if kf.Version != "1.0.0" {
 		t.Errorf("expected version '1.0.0', got %q", kf.Version)

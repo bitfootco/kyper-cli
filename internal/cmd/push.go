@@ -51,7 +51,7 @@ var pushCmd = &cobra.Command{
 			ui.PrintWarning(w)
 		}
 
-		slug := slugFromTitle(kf.Title)
+		slug := slugFromTitle(kf.Name)
 
 		// 3. Build archive
 		tmpDir := os.TempDir()
@@ -146,7 +146,7 @@ var pushCmd = &cobra.Command{
 
 func buildAppParams(kf *config.KyperFile) map[string]interface{} {
 	params := map[string]interface{}{
-		"title":       kf.Title,
+		"title":       kf.Name,
 		"description": kf.Description,
 		"category":    kf.Category,
 	}

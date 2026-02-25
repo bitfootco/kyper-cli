@@ -78,7 +78,7 @@ func TestGetAppStatus(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		json.NewEncoder(w).Encode(AppStatus{
-			App:    App{Slug: "my-app", Title: "My App"},
+			App:    "my-app",
 			Status: "active",
 			LatestVersion: &VersionInfo{
 				ID:      1,
@@ -93,8 +93,8 @@ func TestGetAppStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAppStatus failed: %v", err)
 	}
-	if status.App.Slug != "my-app" {
-		t.Errorf("unexpected slug: %q", status.App.Slug)
+	if status.App != "my-app" {
+		t.Errorf("unexpected app slug: %q", status.App)
 	}
 	if status.LatestVersion.Version != "1.0.0" {
 		t.Errorf("unexpected version: %q", status.LatestVersion.Version)

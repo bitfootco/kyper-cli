@@ -27,7 +27,7 @@ var withdrawCmd = &cobra.Command{
 			return err
 		}
 
-		slug := slugFromTitle(kf.Title)
+		slug := slugFromTitle(kf.Name)
 		status, err := client.GetAppStatus(slug)
 		if err != nil {
 			return fmt.Errorf("fetching status: %w", err)

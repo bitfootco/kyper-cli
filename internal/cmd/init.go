@@ -262,7 +262,7 @@ func buildKyperFile(title, description, tagline, category string,
 	onDeploy, healthPath, oneTimeStr, subStr, memoryTier string) *config.KyperFile {
 
 	kf := &config.KyperFile{
-		Title:       title,
+		Name:        title,
 		Version:     "0.1.0",
 		Description: description,
 		Category:    category,

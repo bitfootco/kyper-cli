@@ -65,7 +65,7 @@ type ValidationResult struct {
 func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	r := &ValidationResult{Valid: true}
 
-	validateTitle(kf, r)
+	validateName(kf, r)
 	validateVersion(kf, r)
 	validateCategory(kf, r)
 	validateDescription(kf, r)
@@ -91,13 +91,13 @@ func addWarning(r *ValidationResult, msg string) {
 	r.Warnings = append(r.Warnings, msg)
 }
 
-func validateTitle(kf *config.KyperFile, r *ValidationResult) {
-	if kf.Title == "" {
-		addError(r, "title is required (human-readable display name, e.g. \"My App\")")
+func validateName(kf *config.KyperFile, r *ValidationResult) {
+	if kf.Name == "" {
+		addError(r, "name is required")
 		return
 	}
-	if len(kf.Title) > 100 {
-		addError(r, "title must be 100 characters or fewer")
+	if len(kf.Name) > 100 {
+		addError(r, "name must be 100 characters or fewer")
 	}
 }
 

@@ -31,14 +31,15 @@ type User struct {
 }
 
 type App struct {
-	Slug        string `json:"slug"`
-	Title       string `json:"title"`
-	Tagline     string `json:"tagline"`
-	Status      string `json:"status"`
-	PricingType string `json:"pricing_type"`
-	Description string `json:"description"`
-	Category    string `json:"category"`
-	TechStack   string `json:"tech_stack"`
+	Slug                   string   `json:"slug"`
+	Title                  string   `json:"title"`
+	Tagline                string   `json:"tagline"`
+	Status                 string   `json:"status"`
+	PricingType            string   `json:"pricing_type"`
+	OneTimePriceCents      *int     `json:"one_time_price_cents"`
+	SubscriptionPriceCents *int     `json:"subscription_price_cents"`
+	TechStack              []string `json:"tech_stack"`
+	VersionsCount          int      `json:"versions_count"`
 }
 
 type VersionInfo struct {
@@ -49,17 +50,18 @@ type VersionInfo struct {
 }
 
 type AppStatus struct {
-	App           App          `json:"app"`
+	App           string       `json:"app"`
 	Status        string       `json:"status"`
 	LatestVersion *VersionInfo `json:"latest_version"`
 }
 
 type VersionResponse struct {
-	ID      int    `json:"id"`
-	App     string `json:"app"`
-	Version string `json:"version"`
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	ID          int    `json:"id"`
+	App         string `json:"app"`
+	Version     string `json:"version"`
+	Status      string `json:"status"`
+	SubmittedAt string `json:"submitted_at"`
+	Message     string `json:"message"`
 }
 
 type BuildLog struct {

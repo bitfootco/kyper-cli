@@ -11,7 +11,7 @@ func floatPtr(f float64) *float64 { return &f }
 
 func validKyperFile() *config.KyperFile {
 	return &config.KyperFile{
-		Title:       "My App",
+		Name:        "My App",
 		Version:     "1.0.0",
 		Description: "A valid test app",
 		Category:    "productivity",
@@ -35,19 +35,19 @@ func TestValidFile(t *testing.T) {
 	}
 }
 
-func TestTitleRequired(t *testing.T) {
+func TestNameRequired(t *testing.T) {
 	kf := validKyperFile()
-	kf.Title = ""
+	kf.Name = ""
 	r := Validate(kf, false)
 	if r.Valid {
 		t.Error("expected invalid")
 	}
-	assertContainsError(t, r, "title is required")
+	assertContainsError(t, r, "name is required")
 }
 
-func TestTitleTooLong(t *testing.T) {
+func TestNameTooLong(t *testing.T) {
 	kf := validKyperFile()
-	kf.Title = strings.Repeat("a", 101)
+	kf.Name = strings.Repeat("a", 101)
 	r := Validate(kf, false)
 	assertContainsError(t, r, "100 characters")
 }
