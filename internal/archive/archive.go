@@ -17,11 +17,13 @@ var defaultExcludes = []string{
 }
 
 // Create builds a zip archive from the given directory, respecting
-// default exclude patterns and .kyperignore rules.
+// default exclude patterns, .dockerignore, and .kyperignore rules.
 func Create(dir, outputPath string) error {
+	dockerPatterns := loadDockerignorePatterns(dir)
 	ignorePatterns := loadIgnorePatterns(dir)
-	allPatterns := make([]string, 0, len(defaultExcludes)+len(ignorePatterns))
+	allPatterns := make([]string, 0, len(defaultExcludes)+len(dockerPatterns)+len(ignorePatterns))
 	allPatterns = append(allPatterns, defaultExcludes...)
+	allPatterns = append(allPatterns, dockerPatterns...)
 	allPatterns = append(allPatterns, ignorePatterns...)
 
 	outFile, err := os.Create(outputPath)
@@ -90,6 +92,24 @@ func Create(dir, outputPath string) error {
 		_, err = io.Copy(writer, file)
 		return err
 	})
+}
+
+func loadDockerignorePatterns(dir string) []string {
+	path := filepath.Join(dir, ".dockerignore")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+
+	var patterns []string
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "!") {
+			continue
+		}
+		patterns = append(patterns, line)
+	}
+	return patterns
 }
 
 func loadIgnorePatterns(dir string) []string {

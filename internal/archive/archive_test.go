@@ -145,6 +145,84 @@ func TestCreateZipRespectsKyperignore(t *testing.T) {
 	}
 }
 
+func TestCreateZipRespectsDockerignore(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, "app.rb"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "secret.env"), []byte("SECRET=abc"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".dockerignore"), []byte("secret.env\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	outPath := filepath.Join(t.TempDir(), "output.zip")
+	if err := Create(dir, outPath); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	r, err := zip.OpenReader(outPath)
+	if err != nil {
+		t.Fatalf("opening zip: %v", err)
+	}
+	defer func() { _ = r.Close() }()
+
+	for _, f := range r.File {
+		if f.Name == "secret.env" {
+			t.Error("zip should not contain secret.env (in .dockerignore)")
+		}
+	}
+
+	// app.rb should still be included
+	found := false
+	for _, f := range r.File {
+		if f.Name == "app.rb" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected app.rb in zip")
+	}
+}
+
+func TestCreateZipDockerignoreSkipsNegations(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, "app.rb"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "important.txt"), []byte("keep me"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Negation line should be ignored (conservative: we exclude less)
+	if err := os.WriteFile(filepath.Join(dir, ".dockerignore"), []byte("# comment\n!important.txt\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	outPath := filepath.Join(t.TempDir(), "output.zip")
+	if err := Create(dir, outPath); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	r, err := zip.OpenReader(outPath)
+	if err != nil {
+		t.Fatalf("opening zip: %v", err)
+	}
+	defer func() { _ = r.Close() }()
+
+	found := false
+	for _, f := range r.File {
+		if f.Name == "important.txt" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected important.txt in zip (negation lines in .dockerignore should be skipped)")
+	}
+}
+
 func TestCreateZipExcludesLogFiles(t *testing.T) {
 	dir := t.TempDir()
 
