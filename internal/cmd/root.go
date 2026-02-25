@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/bitfootco/kyper-cli/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +23,8 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output raw JSON (for scripting)")
 	rootCmd.PersistentFlags().StringVar(&hostFlag, "host", "", "Override API host URL")
+	rootCmd.Version = fmt.Sprintf("%s (%s, %s)", version.Version, version.Commit, version.Date)
+	rootCmd.SetVersionTemplate("kyper {{.Version}}\n")
 }
 
 func Execute() error {

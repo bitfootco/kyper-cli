@@ -116,12 +116,14 @@ var pushCmd = &cobra.Command{
 		if err == nil && finalStatus.LatestVersion != nil && finalStatus.LatestVersion.Status == "build_failed" {
 			if !jsonOutput {
 				var retry bool
-				huh.NewConfirm().
+				if err := huh.NewConfirm().
 					Title("Build failed. Retry?").
 					Affirmative("Yes").
 					Negative("No").
 					Value(&retry).
-					Run()
+					Run(); err != nil {
+					return err
+				}
 				if retry {
 					if _, err := client.RetryVersion(vr.ID); err != nil {
 						return fmt.Errorf("retrying build: %w", err)
