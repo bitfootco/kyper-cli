@@ -4,13 +4,16 @@ COMMIT    := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE      := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS   := -X $(PKG).Version=dev -X $(PKG).Commit=$(COMMIT) -X $(PKG).Date=$(DATE)
 
-.PHONY: build install test vet lint clean
+.PHONY: build install install-dev test vet lint clean
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/kyper/
 
 install:
 	go install -ldflags "$(LDFLAGS)" ./cmd/kyper/
+
+install-dev:
+	go build -ldflags "$(LDFLAGS)" -o $(shell go env GOPATH)/bin/kyperdev ./cmd/kyper/
 
 test:
 	go test ./...
