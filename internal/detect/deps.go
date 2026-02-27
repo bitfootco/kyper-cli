@@ -31,8 +31,7 @@ var packageJSONMappings = map[string]string{
 	"ioredis":                                "redis",
 	"@elastic/elasticsearch":                 "elasticsearch",
 	"@opensearch-project/opensearch":         "opensearch",
-	"@aws-sdk/client-s3":                     "s3",
-	"aws-sdk":                                "s3",
+	"@aws-sdk/client-s3": "s3",
 }
 
 var pythonMappings = map[string]string{
@@ -45,8 +44,7 @@ var pythonMappings = map[string]string{
 	"redis":           "redis",
 	"elasticsearch":   "elasticsearch",
 	"opensearch-py":   "opensearch",
-	"boto3":           "s3",
-	"botocore":        "s3",
+	"boto3": "s3",
 }
 
 // DetectDeps scans project files for infrastructure dependencies.
