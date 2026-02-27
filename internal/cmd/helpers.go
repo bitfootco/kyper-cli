@@ -55,6 +55,12 @@ func slugFromTitle(title string) string {
 	return s
 }
 
+var yamlNameRegexp = regexp.MustCompile(`(?m)^name:\s*.*$`)
+
+func slugifyYAMLName(raw []byte, slug string) []byte {
+	return yamlNameRegexp.ReplaceAll(raw, []byte("name: "+slug))
+}
+
 // tailLog streams the build log for a version, printing output as it arrives.
 // It returns the final build status (e.g. "built", "build_failed", "in_review").
 func tailLog(client *api.Client, versionID int, startCursor int) (string, error) {

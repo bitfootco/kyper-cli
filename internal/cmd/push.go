@@ -96,9 +96,10 @@ var pushCmd = &cobra.Command{
 
 		// 5. Upload version
 		var vr *api.VersionResponse
+		apiYAML := slugifyYAMLName(raw, slug)
 		err = ui.RunWithSpinner("Uploading...", jsonOutput, func() error {
 			var uploadErr error
-			vr, uploadErr = client.CreateVersion(slug, string(raw), zipPath)
+			vr, uploadErr = client.CreateVersion(slug, string(apiYAML), zipPath)
 			return uploadErr
 		})
 		if err != nil {
