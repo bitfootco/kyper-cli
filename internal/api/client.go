@@ -57,12 +57,13 @@ type AppStatus struct {
 }
 
 type VersionResponse struct {
-	ID          int    `json:"id"`
-	App         string `json:"app"`
-	Version     string `json:"version"`
-	Status      string `json:"status"`
-	SubmittedAt string `json:"submitted_at"`
-	Message     string `json:"message"`
+	ID            int    `json:"id"`
+	App           string `json:"app"`
+	Version       string `json:"version"`
+	Status        string `json:"status"`
+	SubmittedAt   string `json:"submitted_at"`
+	Message       string `json:"message"`
+	SubmissionURL string `json:"submission_url"`
 }
 
 type BuildLog struct {

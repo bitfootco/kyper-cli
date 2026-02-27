@@ -55,6 +55,12 @@ func slugFromTitle(title string) string {
 	return s
 }
 
+var yamlNameRegexp = regexp.MustCompile(`(?m)^name:\s*.*$`)
+
+func slugifyYAMLName(raw []byte, slug string) []byte {
+	return yamlNameRegexp.ReplaceAll(raw, []byte("name: "+slug))
+}
+
 // tailLog streams the build log for a version, printing output as it arrives.
 // It returns the final build status (e.g. "built", "build_failed", "in_review").
 func tailLog(client *api.Client, versionID int, startCursor int) (string, error) {
@@ -91,6 +97,7 @@ func tailLog(client *api.Client, versionID int, startCursor int) (string, error)
 // waitForBuild polls until the build completes, showing a spinner.
 // Returns the final status string and, on build_failed, the full build log.
 func waitForBuild(client *api.Client, versionID int, jsonMode bool) (status string, buildLog string, err error) {
+	var logBuf strings.Builder
 	spinErr := ui.RunWithSpinner("Building...", jsonMode, func() error {
 		cursor := 0
 		timeout := time.After(30 * time.Minute)
@@ -104,6 +111,9 @@ func waitForBuild(client *api.Client, versionID int, jsonMode bool) (status stri
 			if pollErr != nil {
 				return fmt.Errorf("fetching build log: %w", pollErr)
 			}
+			if bl.Log != "" {
+				logBuf.WriteString(bl.Log)
+			}
 			cursor = bl.Cursor
 			if bl.Complete {
 				status = bl.Status
@@ -116,10 +126,7 @@ func waitForBuild(client *api.Client, versionID int, jsonMode bool) (status stri
 		return "", "", spinErr
 	}
 	if status == "build_failed" {
-		full, logErr := client.GetBuildLog(versionID, 0)
-		if logErr == nil && full != nil {
-			buildLog = full.Log
-		}
+		buildLog = logBuf.String()
 	}
 	return status, buildLog, nil
 }

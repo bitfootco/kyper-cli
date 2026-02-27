@@ -45,11 +45,42 @@ func TestNameRequired(t *testing.T) {
 	assertContainsError(t, r, "name is required")
 }
 
+func TestNameValidFormats(t *testing.T) {
+	tests := []string{
+		"My App",
+		"MY-APP",
+		"my-app",
+		"-leading-hyphen",
+		"trailing-hyphen-",
+		"App 2.0",
+		"café",
+	}
+	for _, name := range tests {
+		t.Run(name, func(t *testing.T) {
+			kf := validKyperFile()
+			kf.Name = name
+			r := Validate(kf, false)
+			if !r.Valid {
+				t.Errorf("name %q should be valid, got errors: %v", name, r.Errors)
+			}
+		})
+	}
+}
+
 func TestNameNoAlphanumeric(t *testing.T) {
-	kf := validKyperFile()
-	kf.Name = "!!!"
-	r := Validate(kf, false)
-	assertContainsError(t, r, "at least one letter or digit")
+	tests := []string{
+		"!!!",
+		"---",
+		"   ",
+	}
+	for _, name := range tests {
+		t.Run(name, func(t *testing.T) {
+			kf := validKyperFile()
+			kf.Name = name
+			r := Validate(kf, false)
+			assertContainsError(t, r, "at least one letter or digit")
+		})
+	}
 }
 
 func TestNameTooLong(t *testing.T) {

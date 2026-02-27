@@ -74,6 +74,48 @@ func TestTailLogStartCursor(t *testing.T) {
 	}
 }
 
+func TestSlugifyYAMLName(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		slug  string
+		want  string
+	}{
+		{
+			name:  "simple name",
+			input: "name: My Cool App\nversion: 1.0.0\n",
+			slug:  "my-cool-app",
+			want:  "name: my-cool-app\nversion: 1.0.0\n",
+		},
+		{
+			name:  "quoted name",
+			input: "name: \"My Cool App\"\nversion: 1.0.0\n",
+			slug:  "my-cool-app",
+			want:  "name: my-cool-app\nversion: 1.0.0\n",
+		},
+		{
+			name:  "already a slug",
+			input: "name: my-app\nversion: 1.0.0\n",
+			slug:  "my-app",
+			want:  "name: my-app\nversion: 1.0.0\n",
+		},
+		{
+			name:  "preserves other fields",
+			input: "name: My App\nversion: 1.0.0\ndescription: A great app\ncategory: productivity\n",
+			slug:  "my-app",
+			want:  "name: my-app\nversion: 1.0.0\ndescription: A great app\ncategory: productivity\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := string(slugifyYAMLName([]byte(tt.input), tt.slug))
+			if got != tt.want {
+				t.Errorf("slugifyYAMLName() =\n%s\nwant:\n%s", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSlugFromTitle(t *testing.T) {
 	tests := []struct {
 		input string

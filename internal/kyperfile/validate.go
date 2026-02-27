@@ -53,7 +53,7 @@ var DBDeps = map[string]bool{
 }
 
 var semverRegexp = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
-var slugRequiredRegexp = regexp.MustCompile(`[a-zA-Z0-9]`)
+var nameHasAlphanumRegexp = regexp.MustCompile(`[a-zA-Z0-9]`)
 
 type ValidationResult struct {
 	Valid    bool     `json:"valid"`
@@ -99,7 +99,7 @@ func validateName(kf *config.KyperFile, r *ValidationResult) {
 	if len(kf.Name) > 100 {
 		addError(r, "name must be 100 characters or fewer")
 	}
-	if !slugRequiredRegexp.MatchString(kf.Name) {
+	if !nameHasAlphanumRegexp.MatchString(kf.Name) {
 		addError(r, "name must contain at least one letter or digit")
 	}
 }

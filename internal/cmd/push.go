@@ -21,7 +21,7 @@ func init() {
 
 var pushCmd = &cobra.Command{
 	Use:   "push",
-	Short: "Validate, archive, upload, and tail build log",
+	Short: "Validate, archive, upload, and build your app",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// 1. Require auth
@@ -96,9 +96,10 @@ var pushCmd = &cobra.Command{
 
 		// 5. Upload version
 		var vr *api.VersionResponse
+		apiYAML := slugifyYAMLName(raw, slug)
 		err = ui.RunWithSpinner("Uploading...", jsonOutput, func() error {
 			var uploadErr error
-			vr, uploadErr = client.CreateVersion(slug, string(raw), zipPath)
+			vr, uploadErr = client.CreateVersion(slug, string(apiYAML), zipPath)
 			return uploadErr
 		})
 		if err != nil {
@@ -113,22 +114,42 @@ var pushCmd = &cobra.Command{
 			fmt.Println()
 		}
 
-		// 6. Stream build log — live output in interactive mode, silent poll in JSON mode
+		// 6. Wait for build — spinner in interactive mode, silent poll in JSON mode
 		var finalStatus string
+		var buildLog string
 		if jsonOutput {
 			finalStatus, _, err = waitForBuild(client, vr.ID, true)
-			if err != nil {
-				return err
-			}
 		} else {
+			finalStatus, buildLog, err = waitForBuild(client, vr.ID, false)
+		}
+		if err != nil {
+			return err
+		}
+		if !jsonOutput {
+			printBuildStatus(finalStatus)
+		}
+
+		if finalStatus == "build_failed" && buildLog != "" && !jsonOutput {
 			fmt.Println()
-			finalStatus, err = tailLog(client, vr.ID, 0)
-			if err != nil {
-				return err
+			fmt.Print(buildLog)
+		}
+
+		// 7. Show submission URL if build succeeded
+		if vr.SubmissionURL != "" && finalStatus != "build_failed" && finalStatus != "cancelled" {
+			if jsonOutput {
+				result := map[string]interface{}{
+					"version":        vr.Version,
+					"status":         finalStatus,
+					"submission_url": vr.SubmissionURL,
+				}
+				_ = ui.PrintJSON(result)
+			} else {
+				fmt.Println()
+				ui.PrintInfo(fmt.Sprintf("Complete your submission: %s", vr.SubmissionURL))
 			}
 		}
 
-		// 7. On failure: prompt retry (log was already streamed live above)
+		// 8. On failure: prompt retry
 		if finalStatus == "build_failed" && !jsonOutput {
 			var retry bool
 			if err = huh.NewConfirm().
@@ -143,8 +164,19 @@ var pushCmd = &cobra.Command{
 				if _, err = client.RetryVersion(vr.ID); err != nil {
 					return fmt.Errorf("retrying build: %w", err)
 				}
-				_, err = tailLog(client, vr.ID, 0)
-				return err
+				retryStatus, retryLog, retryErr := waitForBuild(client, vr.ID, false)
+				if retryErr != nil {
+					return retryErr
+				}
+				printBuildStatus(retryStatus)
+				if retryStatus == "build_failed" && retryLog != "" {
+					fmt.Println()
+					fmt.Print(retryLog)
+				}
+				if vr.SubmissionURL != "" && retryStatus != "build_failed" && retryStatus != "cancelled" {
+					fmt.Println()
+					ui.PrintInfo(fmt.Sprintf("Complete your submission: %s", vr.SubmissionURL))
+				}
 			}
 		}
 
