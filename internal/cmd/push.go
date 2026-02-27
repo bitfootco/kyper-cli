@@ -21,7 +21,7 @@ func init() {
 
 var pushCmd = &cobra.Command{
 	Use:   "push",
-	Short: "Validate, archive, upload, and tail build log",
+	Short: "Validate, archive, upload, and build your app",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// 1. Require auth
@@ -121,10 +121,12 @@ var pushCmd = &cobra.Command{
 			finalStatus, _, err = waitForBuild(client, vr.ID, true)
 		} else {
 			finalStatus, buildLog, err = waitForBuild(client, vr.ID, false)
-			printBuildStatus(finalStatus)
 		}
 		if err != nil {
 			return err
+		}
+		if !jsonOutput {
+			printBuildStatus(finalStatus)
 		}
 
 		if finalStatus == "build_failed" && buildLog != "" && !jsonOutput {
@@ -163,12 +165,18 @@ var pushCmd = &cobra.Command{
 					return fmt.Errorf("retrying build: %w", err)
 				}
 				retryStatus, retryLog, retryErr := waitForBuild(client, vr.ID, false)
+				if retryErr != nil {
+					return retryErr
+				}
 				printBuildStatus(retryStatus)
 				if retryStatus == "build_failed" && retryLog != "" {
 					fmt.Println()
 					fmt.Print(retryLog)
 				}
-				return retryErr
+				if vr.SubmissionURL != "" && retryStatus != "build_failed" && retryStatus != "cancelled" {
+					fmt.Println()
+					ui.PrintInfo(fmt.Sprintf("Complete your submission: %s", vr.SubmissionURL))
+				}
 			}
 		}
 

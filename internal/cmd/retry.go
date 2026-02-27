@@ -54,11 +54,14 @@ var retryCmd = &cobra.Command{
 		fmt.Println()
 
 		buildStatus, buildLog, waitErr := waitForBuild(client, v.ID, false)
+		if waitErr != nil {
+			return waitErr
+		}
 		printBuildStatus(buildStatus)
 		if buildStatus == "build_failed" && buildLog != "" {
 			fmt.Println()
 			fmt.Print(buildLog)
 		}
-		return waitErr
+		return nil
 	},
 }
