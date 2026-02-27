@@ -114,19 +114,22 @@ var pushCmd = &cobra.Command{
 			fmt.Println()
 		}
 
-		// 6. Stream build log — live output in interactive mode, silent poll in JSON mode
+		// 6. Wait for build — spinner in interactive mode, silent poll in JSON mode
 		var finalStatus string
+		var buildLog string
 		if jsonOutput {
 			finalStatus, _, err = waitForBuild(client, vr.ID, true)
-			if err != nil {
-				return err
-			}
 		} else {
+			finalStatus, buildLog, err = waitForBuild(client, vr.ID, false)
+			printBuildStatus(finalStatus)
+		}
+		if err != nil {
+			return err
+		}
+
+		if finalStatus == "build_failed" && buildLog != "" && !jsonOutput {
 			fmt.Println()
-			finalStatus, err = tailLog(client, vr.ID, 0)
-			if err != nil {
-				return err
-			}
+			fmt.Print(buildLog)
 		}
 
 		// 7. Show submission URL if build succeeded
@@ -144,7 +147,7 @@ var pushCmd = &cobra.Command{
 			}
 		}
 
-		// 8. On failure: prompt retry (log was already streamed live above)
+		// 8. On failure: prompt retry
 		if finalStatus == "build_failed" && !jsonOutput {
 			var retry bool
 			if err = huh.NewConfirm().
@@ -159,8 +162,13 @@ var pushCmd = &cobra.Command{
 				if _, err = client.RetryVersion(vr.ID); err != nil {
 					return fmt.Errorf("retrying build: %w", err)
 				}
-				_, err = tailLog(client, vr.ID, 0)
-				return err
+				retryStatus, retryLog, retryErr := waitForBuild(client, vr.ID, false)
+				printBuildStatus(retryStatus)
+				if retryStatus == "build_failed" && retryLog != "" {
+					fmt.Println()
+					fmt.Print(retryLog)
+				}
+				return retryErr
 			}
 		}
 
