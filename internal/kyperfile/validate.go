@@ -27,6 +27,7 @@ var KnownDeps = []string{
 	"redis",
 	"elasticsearch",
 	"opensearch",
+	"s3",
 }
 
 var AllowedDepVersions = map[string][]string{
@@ -35,6 +36,7 @@ var AllowedDepVersions = map[string][]string{
 	"redis":         {"6", "7"},
 	"elasticsearch": {"8"},
 	"opensearch":    {"2"},
+	"s3":            {}, // no version pinning — Kyper manages the SeaweedFS image
 }
 
 var AutoInjectedEnv = []string{
@@ -45,6 +47,10 @@ var AutoInjectedEnv = []string{
 	"KYPER_DEPLOYMENT_ID",
 	"ELASTICSEARCH_URL",
 	"OPENSEARCH_URL",
+	"AWS_ACCESS_KEY_ID",
+	"AWS_SECRET_ACCESS_KEY",
+	"AWS_BUCKET",
+	"AWS_ENDPOINT_URL",
 }
 
 var DBDeps = map[string]bool{
@@ -189,20 +195,28 @@ func validateDeps(kf *config.KyperFile, r *ValidationResult) {
 
 		if dep.Version != "" {
 			allowed := AllowedDepVersions[dep.Name]
-			valid := false
-			for _, v := range allowed {
-				if dep.Version == v {
-					valid = true
-					break
+			if len(allowed) == 0 {
+				addError(r, fmt.Sprintf("dep %q does not support version pinning", dep.Name))
+			} else {
+				valid := false
+				for _, v := range allowed {
+					if dep.Version == v {
+						valid = true
+						break
+					}
 				}
-			}
-			if !valid {
-				addError(r, fmt.Sprintf("dep %q version %q is not allowed — allowed: %s", dep.Name, dep.Version, strings.Join(allowed, ", ")))
+				if !valid {
+					addError(r, fmt.Sprintf("dep %q version %q is not allowed — allowed: %s", dep.Name, dep.Version, strings.Join(allowed, ", ")))
+				}
 			}
 		}
 
 		if dep.StorageGB != 0 && (dep.StorageGB < 1 || dep.StorageGB > 500) {
 			addError(r, fmt.Sprintf("dep %q storage_gb must be between 1 and 500", dep.Name))
+		}
+
+		if dep.Name == "s3" && dep.StorageGB > 0 && dep.StorageGB < 10 {
+			addWarning(r, "s3 storage_gb is below 10 GB — files can be large; consider at least 10 GB")
 		}
 	}
 }

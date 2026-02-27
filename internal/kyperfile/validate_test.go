@@ -323,6 +323,59 @@ func TestEnvAutoInjectedWarning(t *testing.T) {
 	assertContainsWarning(t, r, "auto-injected")
 }
 
+func TestDepsS3Valid(t *testing.T) {
+	kf := validKyperFile()
+	kf.Deps = []config.DepEntry{{Name: "s3"}}
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("expected valid, got errors: %v", r.Errors)
+	}
+}
+
+func TestDepsS3ValidWithStorageGB(t *testing.T) {
+	kf := validKyperFile()
+	kf.Deps = []config.DepEntry{{Name: "s3", StorageGB: 100}}
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("expected valid, got errors: %v", r.Errors)
+	}
+}
+
+func TestDepsS3VersionPinningRejected(t *testing.T) {
+	kf := validKyperFile()
+	kf.Deps = []config.DepEntry{{Name: "s3", Version: "2"}}
+	r := Validate(kf, false)
+	assertContainsError(t, r, "does not support version pinning")
+}
+
+func TestDepsS3StorageGBBelowTenWarns(t *testing.T) {
+	kf := validKyperFile()
+	kf.Deps = []config.DepEntry{{Name: "s3", StorageGB: 5}}
+	r := Validate(kf, false)
+	assertContainsWarning(t, r, "s3 storage_gb is below 10 GB")
+}
+
+func TestDepsS3StorageGBTenNoWarn(t *testing.T) {
+	kf := validKyperFile()
+	kf.Deps = []config.DepEntry{{Name: "s3", StorageGB: 10}}
+	r := Validate(kf, false)
+	for _, w := range r.Warnings {
+		if strings.Contains(w, "s3 storage_gb") {
+			t.Error("should not warn about s3 storage_gb when >= 10")
+		}
+	}
+}
+
+func TestEnvAWSVarsAutoInjectedWarning(t *testing.T) {
+	kf := validKyperFile()
+	kf.Env = []string{"AWS_ACCESS_KEY_ID"}
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("auto-injected AWS env should be a warning, not error")
+	}
+	assertContainsWarning(t, r, "auto-injected")
+}
+
 func TestDBWithoutHookWarning(t *testing.T) {
 	kf := validKyperFile()
 	kf.Deps = []config.DepEntry{{Name: "postgres"}}
