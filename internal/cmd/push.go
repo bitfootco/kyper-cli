@@ -128,7 +128,22 @@ var pushCmd = &cobra.Command{
 			}
 		}
 
-		// 7. On failure: prompt retry (log was already streamed live above)
+		// 7. Show submission URL if build succeeded
+		if vr.SubmissionURL != "" && finalStatus != "build_failed" && finalStatus != "cancelled" {
+			if jsonOutput {
+				result := map[string]interface{}{
+					"version":        vr.Version,
+					"status":         finalStatus,
+					"submission_url": vr.SubmissionURL,
+				}
+				_ = ui.PrintJSON(result)
+			} else {
+				fmt.Println()
+				ui.PrintInfo(fmt.Sprintf("Complete your submission: %s", vr.SubmissionURL))
+			}
+		}
+
+		// 8. On failure: prompt retry (log was already streamed live above)
 		if finalStatus == "build_failed" && !jsonOutput {
 			var retry bool
 			if err = huh.NewConfirm().

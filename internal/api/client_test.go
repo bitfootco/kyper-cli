@@ -125,7 +125,7 @@ func TestCreateVersion(t *testing.T) {
 		}
 
 		w.WriteHeader(201)
-		_ = json.NewEncoder(w).Encode(VersionResponse{ID: 42, Version: "1.0.0", Status: "pending"})
+		_ = json.NewEncoder(w).Encode(VersionResponse{ID: 42, Version: "1.0.0", Status: "pending", SubmissionURL: "https://kyper.shop/apps/my-app/versions/42/submit"})
 	}))
 	defer srv.Close()
 
@@ -142,6 +142,9 @@ func TestCreateVersion(t *testing.T) {
 	}
 	if vr.ID != 42 {
 		t.Errorf("expected version ID 42, got %d", vr.ID)
+	}
+	if vr.SubmissionURL != "https://kyper.shop/apps/my-app/versions/42/submit" {
+		t.Errorf("expected submission URL, got %q", vr.SubmissionURL)
 	}
 	if gotKyperYml != "name: my-app\n" {
 		t.Errorf("unexpected kyper_yml: %q", gotKyperYml)
