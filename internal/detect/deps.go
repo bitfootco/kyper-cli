@@ -19,6 +19,8 @@ var gemfileMappings = map[string]string{
 	"redis":           "redis",
 	"elasticsearch":   "elasticsearch",
 	"opensearch-ruby": "opensearch",
+	"aws-sdk-s3":      "s3",
+	"fog-aws":         "s3",
 }
 
 var packageJSONMappings = map[string]string{
@@ -29,6 +31,8 @@ var packageJSONMappings = map[string]string{
 	"ioredis":                                "redis",
 	"@elastic/elasticsearch":                 "elasticsearch",
 	"@opensearch-project/opensearch":         "opensearch",
+	"@aws-sdk/client-s3":                     "s3",
+	"aws-sdk":                                "s3",
 }
 
 var pythonMappings = map[string]string{
@@ -41,6 +45,8 @@ var pythonMappings = map[string]string{
 	"redis":           "redis",
 	"elasticsearch":   "elasticsearch",
 	"opensearch-py":   "opensearch",
+	"boto3":           "s3",
+	"botocore":        "s3",
 }
 
 // DetectDeps scans project files for infrastructure dependencies.
@@ -81,11 +87,13 @@ func detectDockerComposeDeps(path string, addDep func(string, string)) {
 	content := strings.ToLower(string(data))
 
 	depKeywords := map[string]string{
-		"postgres": "postgres",
-		"mysql":    "mysql",
-		"redis":    "redis",
+		"postgres":      "postgres",
+		"mysql":         "mysql",
+		"redis":         "redis",
 		"elasticsearch": "elasticsearch",
 		"opensearch":    "opensearch",
+		"seaweedfs":     "s3",
+		"minio":         "s3",
 	}
 
 	for keyword, dep := range depKeywords {

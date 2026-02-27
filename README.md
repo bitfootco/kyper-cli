@@ -114,7 +114,7 @@ Interactive wizard that generates `kyper.yml` and `.kyperignore` for your projec
 The wizard:
 1. **Auto-detects** your stack (Rails, Django, Laravel, Go, Next.js, Express, and more)
 2. **Auto-detects** processes (from `Procfile`, `Dockerfile`, framework conventions)
-3. **Auto-detects** dependencies (PostgreSQL, Redis, MySQL, etc. from config files and lockfiles)
+3. **Auto-detects** dependencies (PostgreSQL, Redis, MySQL, S3, etc. from config files and lockfiles)
 4. **Suggests** deploy hooks based on your stack (e.g., `bundle exec rails db:migrate` for Rails)
 5. **Suggests** health check paths (e.g., `/up` for Rails, `/health/` for Django)
 6. Walks you through **pricing**, **category**, and **resource tier** selection
@@ -364,7 +364,7 @@ For the full field-by-field reference, see the [kyper.yml Reference](https://kyp
 | `category` | Yes | One of: `developer_tools`, `productivity`, `finance`, `health`, `media`, `education`, `business_operations`, `data_analytics`, `gaming` |
 | `docker.dockerfile` | Yes | Path to Dockerfile (relative to project root) |
 | `processes.web` | Yes | Command to start the web server |
-| `deps` | No | Infrastructure dependencies (`postgres`, `mysql`, `redis`, `elasticsearch`, `opensearch`) |
+| `deps` | No | Infrastructure dependencies (`postgres`, `mysql`, `redis`, `elasticsearch`, `opensearch`, `s3`) |
 | `env` | No | Required environment variable names (consumers must set these before deploy) |
 | `hooks.on_deploy` | No | Run after first deployment (e.g., migrations) |
 | `hooks.on_update` | No | Run after updates (e.g., migrations) |
