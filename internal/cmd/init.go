@@ -203,10 +203,9 @@ var initCmd = &cobra.Command{
 					Title("Resource tier").
 					Description("Minimum resources allocated to your app").
 					Options(
-						huh.NewOption("Hobby — 512 MB RAM, 1 vCPU ($6/mo)", "512"),
-						huh.NewOption("Starter — 1 GB RAM, 1 vCPU ($12/mo)", "1024"),
-						huh.NewOption("Pro — 2 GB RAM, 2 vCPU ($18/mo)", "2048"),
-						huh.NewOption("Business — 4 GB RAM, 4 vCPU ($24/mo)", "4096"),
+						huh.NewOption("Starter — 512 MB RAM, 0.25 vCPU ($10/mo)", "512"),
+						huh.NewOption("Standard — 1 GB RAM, 0.5 vCPU ($16/mo)", "1024"),
+						huh.NewOption("Pro — 2 GB RAM, 1 vCPU ($25/mo)", "2048"),
 					).
 					Value(&memoryTier),
 			),
@@ -334,8 +333,6 @@ func buildKyperFile(title, description, tagline, category string,
 		switch mem {
 		case 2048:
 			kf.Resources.MinCPU = 2
-		case 4096:
-			kf.Resources.MinCPU = 4
 		default:
 			kf.Resources.MinCPU = 1
 		}
