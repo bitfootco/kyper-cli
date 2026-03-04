@@ -149,8 +149,11 @@ var pushCmd = &cobra.Command{
 			}
 		}
 
-		// 8. On failure: prompt retry
+		// 8. On failure: tip + prompt retry
 		if finalStatus == "build_failed" && !jsonOutput {
+			fmt.Println()
+			ui.PrintInfo("Tip: run `kyper build` locally to reproduce and debug faster.")
+			fmt.Println()
 			var retry bool
 			if err = huh.NewConfirm().
 				Title("Retry build?").
