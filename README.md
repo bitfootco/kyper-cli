@@ -11,6 +11,7 @@ The official command-line tool for developers to push, validate, and manage apps
 - **Device auth login** — browser-based authentication flow (no passwords in the terminal)
 - **Interactive project setup** — guided wizard with auto-detection of your stack, processes, and dependencies
 - **Local validation** — catch `kyper.yml` issues before pushing
+- **Local builds** — build your Docker image locally to debug before pushing
 - **One-command deploy** — validate, archive, upload, and stream build logs with `kyper push`
 - **Build management** — stream logs, retry failed builds, cancel or withdraw versions
 - **Scriptable** — every command supports `--json` for CI/automation
@@ -52,7 +53,10 @@ kyper init
 # 3. Validate your config
 kyper validate
 
-# 4. Deploy
+# 4. Build locally (optional — useful for debugging)
+kyper build
+
+# 5. Deploy
 kyper push
 ```
 
@@ -167,6 +171,53 @@ kyper validate
 ```bash
 kyper validate --json
 # {"valid":false,"errors":["processes must include a 'web' key"],"warnings":["deps includes 'postgres' but no on_deploy hook is set"]}
+```
+
+#### `kyper check`
+
+Validate `kyper.yml` and confirm the referenced Dockerfile exists. A lightweight pre-flight check before building or pushing.
+
+```bash
+kyper check
+
+# Checking project
+#
+# ✓ kyper.yml is valid
+# ✓ Dockerfile exists
+#
+# ✓ All checks passed
+```
+
+```bash
+kyper check --json
+# {"valid":true,"errors":[],"warnings":[],"dockerfile_exists":true}
+```
+
+#### `kyper build`
+
+Build the Docker image locally using your project's Dockerfile. Useful for catching build issues before pushing to Kyper.
+
+```bash
+kyper build
+
+# ✓ kyper.yml is valid
+# Building kyper-local/invoice-hero:1.3.0 from ./Dockerfile
+#
+# [+] Building 12.3s (14/14) FINISHED
+# ...
+#
+# ✓ Build succeeded: kyper-local/invoice-hero:1.3.0
+#
+# Run: kyper push
+```
+
+| Flag | Description |
+|------|-------------|
+| `--no-cache` | Build without Docker layer caching |
+
+```bash
+kyper build --json
+# {"image":"kyper-local/invoice-hero:1.3.0","status":"success"}
 ```
 
 ---

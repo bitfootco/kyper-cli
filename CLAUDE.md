@@ -50,6 +50,8 @@ internal/
     whoami.go                   # Show authenticated user
     version_cmd.go              # CLI version display
     helpers.go                  # Shared: requireAuth(), loadKyperYML(), tailLog()
+    build.go                    # Local Docker image build
+    check.go                    # Validate kyper.yml + confirm Dockerfile exists
   api/                          # HTTP client layer
     client.go                   # All API methods
     errors.go                   # APIError type, IsNotFound/IsUnauthorized helpers
@@ -102,11 +104,13 @@ Build a CLI experience on par with fly and terraform:
 - Fast startup (no interpreter overhead)
 
 ---
-Commands (11 total, all top-level — no subcommands)
+Commands (13 total, all top-level — no subcommands)
 
 kyper login       — Authenticate via browser (device auth flow)
 kyper init        — Interactive project setup wizard
 kyper validate    — Validate kyper.yml locally
+kyper check       — Validate kyper.yml + confirm Dockerfile exists
+kyper build       — Build the Docker image locally
 kyper tag         — Bump the version in kyper.yml (patch/minor/major)
 kyper push        — Validate + archive + upload + tail build log
 kyper status      — Show app and latest version status
@@ -317,11 +321,39 @@ kyper push
 5. Upload version (spinner: "Uploading..."):
   - POST /api/v1/apps/{slug}/versions — multipart: kyper_yml (raw YAML string) + source_zip (file)
 6. Tail build log (auto-starts after upload)
-7. On build_failed: prompt "Retry?" (Huh confirm)
+7. On build_failed: suggest `kyper build` for local debugging + prompt "Retry?" (Huh confirm)
 
 Slug derivation: strings.ToLower(name), replace [^a-z0-9]+ with -, trim leading/trailing -
 
 Pricing type derivation: both prices → "both", only one_time → "one_time", only subscription → "subscription"
+
+kyper check
+
+Validates kyper.yml and confirms the referenced Dockerfile exists on disk. Provides a structured pass/fail summary.
+
+1. Load kyper.yml from CWD
+2. Run full kyper.yml validation (same rules as kyper validate)
+3. Stat-check the Dockerfile path from docker.dockerfile
+4. Print per-item PASS/FAIL/WARN results
+5. Exit 0 on all pass, 1 on any failure
+
+--json mode: {"valid": bool, "errors": [...], "warnings": [...], "dockerfile_exists": bool}
+
+kyper build
+
+Builds the Docker image locally using the project's Dockerfile. Useful for debugging build failures before pushing.
+
+1. Verify docker is in $PATH (error with install link if missing)
+2. Load + validate kyper.yml (fail fast on invalid config)
+3. Confirm Dockerfile exists at docker.dockerfile path
+4. Run docker build -f <dockerfile> -t kyper-local/<slug>:<version> .
+5. Stream Docker output directly to stdout/stderr
+6. On success: print image tag + suggest `kyper push`
+
+Flags:
+- --no-cache: Build without Docker layer caching
+
+--json mode: {"image": "<tag>", "status": "success"}
 
 kyper logs
 
