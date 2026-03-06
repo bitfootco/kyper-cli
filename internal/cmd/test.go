@@ -13,6 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// maxNilDeploymentPolls is how many times tailProvisionLog will retry when the
+// deployment record is still null right after build completes (~20s window).
+const maxNilDeploymentPolls = 10
+
 var (
 	testStatus  bool
 	testDestroy bool
@@ -37,7 +41,11 @@ auto-destroys after 1 hour.`,
 			return err
 		}
 
-		kf, _, err := loadKyperYML()
+		if testStatus && testDestroy {
+			return fmt.Errorf("--status and --destroy are mutually exclusive")
+		}
+
+		kf, raw, err := loadKyperYML()
 		if err != nil {
 			return err
 		}
@@ -55,11 +63,6 @@ auto-destroys after 1 hour.`,
 		}
 
 		// Main flow: build + deploy
-		_, raw, err := loadKyperYML()
-		if err != nil {
-			return err
-		}
-
 		result := kyperfile.Validate(kf, true)
 		if !result.Valid {
 			if jsonOutput {
@@ -120,11 +123,11 @@ auto-destroys after 1 hour.`,
 			fmt.Println(ui.Bold.Render("— Build phase —"))
 		}
 
-		var buildStatus string
+		var buildStatus, buildLog string
 		if jsonOutput {
 			buildStatus, _, err = waitForBuild(client, tr.VersionID, true)
 		} else {
-			buildStatus, _, err = waitForBuild(client, tr.VersionID, false)
+			buildStatus, buildLog, err = waitForBuild(client, tr.VersionID, false)
 		}
 		if err != nil {
 			return err
@@ -135,6 +138,10 @@ auto-destroys after 1 hour.`,
 		}
 
 		if buildStatus == "build_failed" {
+			if !jsonOutput && buildLog != "" {
+				fmt.Println()
+				fmt.Print(buildLog)
+			}
 			if jsonOutput {
 				_ = ui.PrintJSON(map[string]interface{}{
 					"version_id":   tr.VersionID,
@@ -157,8 +164,8 @@ auto-destroys after 1 hour.`,
 			return err
 		}
 
-		if deployment == nil || deployment.Status == "failed" {
-			return fmt.Errorf("test deployment provisioning failed")
+		if deployment.Status != "running" {
+			return fmt.Errorf("test deployment provisioning failed (status: %s)", deployment.Status)
 		}
 
 		// Success
@@ -199,7 +206,7 @@ func runTestStatus(client *api.Client, slug string) error {
 		return nil
 	}
 
-	fmt.Printf("%s build_status: %s\n", ui.Label.Render("Build status:"), status.BuildStatus)
+	fmt.Printf("%s %s\n", ui.Label.Render("Build status:"), status.BuildStatus)
 	if status.Deployment != nil {
 		d := status.Deployment
 		fmt.Printf("%s %s\n", ui.Label.Render("Deploy status:"), d.Status)
@@ -242,12 +249,11 @@ func runTestDestroy(client *api.Client, slug string) error {
 }
 
 // tailProvisionLog polls GET /api/v1/apps/:slug/test_deploy until the deployment
-// reaches a terminal state (running or failed), streaming provision_log content.
-// Returns the final deployment or nil on failure.
+// reaches a terminal state, streaming provision_log content incrementally.
+// Returns the final deployment (always non-nil on nil error).
 func tailProvisionLog(client *api.Client, slug string) (*api.TestDeployment, error) {
 	cursor := 0
-	// Allow a few nil-deployment polls right after build succeeds.
-	nilDeploymentRetries := 10
+	nilRetries := maxNilDeploymentPolls
 
 	for {
 		status, err := client.GetTestDeploy(slug, cursor)
@@ -259,8 +265,8 @@ func tailProvisionLog(client *api.Client, slug string) (*api.TestDeployment, err
 		}
 
 		if status.Deployment == nil {
-			nilDeploymentRetries--
-			if nilDeploymentRetries <= 0 {
+			nilRetries--
+			if nilRetries <= 0 {
 				return nil, fmt.Errorf("provision deployment record never appeared")
 			}
 			time.Sleep(2 * time.Second)
@@ -275,9 +281,7 @@ func tailProvisionLog(client *api.Client, slug string) (*api.TestDeployment, err
 		cursor = d.ProvisionLogCursor
 
 		switch d.Status {
-		case "running":
-			return d, nil
-		case "failed", "terminated", "destroying":
+		case "running", "failed", "terminated", "destroying":
 			return d, nil
 		}
 

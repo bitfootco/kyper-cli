@@ -55,7 +55,7 @@ var buildCmd = &cobra.Command{
 		// 3. Confirm Dockerfile exists
 		dockerfile := kf.Docker.Dockerfile
 		if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
-			return fmt.Errorf("Dockerfile not found: %s", dockerfile)
+			return fmt.Errorf("dockerfile not found: %s", dockerfile)
 		}
 
 		// 4. Build image
