@@ -379,11 +379,14 @@ Build and ephemerally deploy the app for pre-submission testing. Deployment uses
 Flags:
 - --status: GET current test deploy, print URL and expiry. 404 → user-friendly "no active deploy" message (not an error).
 - --destroy: DELETE active test deploy.
+- --env-file <path>: Path to a .env file to inject as env vars into the test deployment. Defaults to ".env". File is silently skipped if it doesn't exist. Parsed as KEY=VALUE pairs; blank lines and # comments ignored; lines without = skipped; cut on first = so values may contain =.
 
 Main flow:
 1. Read + validate kyper.yml (fail fast)
 2. Build zip archive (same as kyper push)
-3. POST /api/v1/apps/{slug}/test_deploy — multipart: kyper_yml + source_zip → get version_id + warnings
+3. Sync app (create or update) via syncApp() helper — same as kyper push
+4. Load env vars from --env-file (default: .env); print count if any loaded; silently skip if file missing
+5. POST /api/v1/apps/{slug}/test_deploy — multipart: kyper_yml + source_zip + env_vars (JSON, omitted if empty) → get version_id + warnings
 4. Phase 1 — Build: poll GET /api/v1/versions/{id}/build_log (same as kyper push). Exit 1 on build_failed.
 5. Phase 2 — Provision: poll GET /api/v1/apps/{slug}/test_deploy?provision_log_cursor=N every 2s.
    - Stream provision_log content (cursor-based, same pattern as build log).
