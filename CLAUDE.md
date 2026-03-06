@@ -104,7 +104,7 @@ Build a CLI experience on par with fly and terraform:
 - Fast startup (no interpreter overhead)
 
 ---
-Commands (13 total, all top-level — no subcommands)
+Commands (14 total, all top-level — no subcommands)
 
 kyper login       — Authenticate via browser (device auth flow)
 kyper init        — Interactive project setup wizard
@@ -113,6 +113,7 @@ kyper check       — Validate kyper.yml + confirm Dockerfile exists
 kyper build       — Build the Docker image locally
 kyper tag         — Bump the version in kyper.yml (patch/minor/major)
 kyper push        — Validate + archive + upload + tail build log
+kyper test        — Build + ephemeral deploy for pre-submission testing
 kyper status      — Show app and latest version status
 kyper logs        — Stream build logs for latest version
 kyper retry       — Retry a failed build
@@ -185,6 +186,22 @@ Versions (Build Pipeline)
 ├────────┼─────────────────────────────────────────┼───────────────────────────────────────────────────┼────────────────────────────────────────────┤
 │ DELETE │ /api/v1/versions/:id                    │ —                                                 │ {message} (only if not published/building) │
 └────────┴─────────────────────────────────────────┴───────────────────────────────────────────────────┴────────────────────────────────────────────┘
+
+Test Deploy
+
+┌────────┬──────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Method │                              Path                                │                       Body                        │                                               Response                                                        │
+├────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ POST   │ /api/v1/apps/:slug/test_deploy                                   │ multipart: kyper_yml (string) + source_zip (file) │ {version_id, message, warnings} (201)                                                                        │
+├────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ GET    │ /api/v1/apps/:slug/test_deploy?provision_log_cursor=N            │ —                                                 │ {version_id, build_status, deployment: {id, status, url, expires_at, provision_log, provision_log_cursor}}    │
+├────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ DELETE │ /api/v1/apps/:slug/test_deploy                                   │ —                                                 │ {message}                                                                                                    │
+└────────┴──────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Deployment statuses: pending → configuring → provisioning → running (success) | failed
+deployment key is null while the build is still in progress.
+POST auto-destroys any existing active test deploy for the same app before creating a new one.
 
 Error Response Formats
 
@@ -354,6 +371,30 @@ Flags:
 - --no-cache: Build without Docker layer caching
 
 --json mode: {"image": "<tag>", "status": "success"}
+
+kyper test
+
+Build and ephemerally deploy the app for pre-submission testing. Deployment uses Starter-tier resources (512 MB RAM, 0.25 vCPU) and auto-destroys after 1 hour.
+
+Flags:
+- --status: GET current test deploy, print URL and expiry. 404 → user-friendly "no active deploy" message (not an error).
+- --destroy: DELETE active test deploy.
+
+Main flow:
+1. Read + validate kyper.yml (fail fast)
+2. Build zip archive (same as kyper push)
+3. POST /api/v1/apps/{slug}/test_deploy — multipart: kyper_yml + source_zip → get version_id + warnings
+4. Phase 1 — Build: poll GET /api/v1/versions/{id}/build_log (same as kyper push). Exit 1 on build_failed.
+5. Phase 2 — Provision: poll GET /api/v1/apps/{slug}/test_deploy?provision_log_cursor=N every 2s.
+   - Stream provision_log content (cursor-based, same pattern as build log).
+   - Retry up to 10 times if deployment key is null (brief window after build while K8s record is created).
+   - Terminal states: running (success), failed/terminated/destroying (error).
+6. On running: print URL + relative expiry time ("in 58 minutes").
+
+expires_at is ISO8601 — display as relative time.
+Warn that deps (Postgres, Redis) take 3–5 minutes to become healthy.
+
+--json mode: {"url": "...", "expires_at": "...", "status": "running"}
 
 kyper logs
 
