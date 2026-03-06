@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 
@@ -114,6 +116,75 @@ func TestSlugifyYAMLName(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParseEnvFile(t *testing.T) {
+	t.Run("missing file returns empty map", func(t *testing.T) {
+		got := parseEnvFile("/nonexistent/.env")
+		if len(got) != 0 {
+			t.Errorf("expected empty map, got %v", got)
+		}
+	})
+
+	t.Run("empty file returns empty map", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, ".env")
+		_ = os.WriteFile(path, []byte(""), 0644)
+		got := parseEnvFile(path)
+		if len(got) != 0 {
+			t.Errorf("expected empty map, got %v", got)
+		}
+	})
+
+	t.Run("valid key=value pairs", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, ".env")
+		content := "MY_KEY=hello\nOTHER_KEY=world\n"
+		_ = os.WriteFile(path, []byte(content), 0644)
+		got := parseEnvFile(path)
+		if got["MY_KEY"] != "hello" {
+			t.Errorf("expected MY_KEY=hello, got %q", got["MY_KEY"])
+		}
+		if got["OTHER_KEY"] != "world" {
+			t.Errorf("expected OTHER_KEY=world, got %q", got["OTHER_KEY"])
+		}
+	})
+
+	t.Run("comments and blank lines are skipped", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, ".env")
+		content := "# this is a comment\n\nMY_KEY=hello\n# another comment\n"
+		_ = os.WriteFile(path, []byte(content), 0644)
+		got := parseEnvFile(path)
+		if len(got) != 1 {
+			t.Errorf("expected 1 entry, got %d: %v", len(got), got)
+		}
+		if got["MY_KEY"] != "hello" {
+			t.Errorf("expected MY_KEY=hello, got %q", got["MY_KEY"])
+		}
+	})
+
+	t.Run("lines without = are skipped", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, ".env")
+		content := "NOEQUALS\nMY_KEY=hello\n"
+		_ = os.WriteFile(path, []byte(content), 0644)
+		got := parseEnvFile(path)
+		if len(got) != 1 {
+			t.Errorf("expected 1 entry, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("values with = in them are preserved", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, ".env")
+		content := "MY_KEY=val=ue\n"
+		_ = os.WriteFile(path, []byte(content), 0644)
+		got := parseEnvFile(path)
+		if got["MY_KEY"] != "val=ue" {
+			t.Errorf("expected MY_KEY=val=ue, got %q", got["MY_KEY"])
+		}
+	})
 }
 
 func TestSlugFromTitle(t *testing.T) {

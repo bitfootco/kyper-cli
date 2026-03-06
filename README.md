@@ -13,6 +13,7 @@ The official command-line tool for developers to push, validate, and manage apps
 - **Local validation** — catch `kyper.yml` issues before pushing
 - **Local builds** — build your Docker image locally to debug before pushing
 - **One-command deploy** — validate, archive, upload, and stream build logs with `kyper push`
+- **Ephemeral test deploys** — spin up a full production-like environment for 1 hour with `kyper test`
 - **Build management** — stream logs, retry failed builds, cancel or withdraw versions
 - **Scriptable** — every command supports `--json` for CI/automation
 
@@ -248,6 +249,50 @@ kyper tag --bump patch
 ```bash
 kyper tag --bump minor --json
 # {"previous_version":"1.2.3","new_version":"1.3.0"}
+```
+
+#### `kyper test`
+
+Build and ephemerally deploy your app on Kyper's real K8s infrastructure. Useful for validating your app works end-to-end in a production-like environment — including declared deps (Postgres, Redis, etc.) — before submitting for review. The deployment auto-destroys after 1 hour and uses Starter-tier resources (512 MB RAM, 0.25 vCPU).
+
+```bash
+kyper test
+
+# ✓ Test build queued. Your app will be live in ~2-5 minutes.
+#
+# — Build phase —
+# [build] Step 1/12 : FROM ruby:3.4-slim
+# ...
+# ✓ Build succeeded
+#
+# — Provision phase —
+# Starting K8s provisioning...
+# Applied manifests...
+#
+# ✓ Test deploy is live!
+#   https://test-invoice-hero-a1b2c3d4.apps.kyper.shop
+#   Auto-destroys in 58 minutes. Run 'kyper test --destroy' to tear it down early.
+```
+
+> **Note:** Provisioning a full stack with Postgres and Redis typically takes 3–5 minutes.
+
+| Flag | Description |
+|------|-------------|
+| `--status` | Show current test deploy URL and status (gracefully handles no active deploy) |
+| `--destroy` | Tear down the active test deploy early |
+
+```bash
+kyper test --status
+# Build status: built
+# Deploy status: running
+# URL: https://test-invoice-hero-a1b2c3d4.apps.kyper.shop
+# Expires: in 45 minutes
+
+kyper test --destroy
+# ✓ Test deployment is being torn down
+
+kyper test --json
+# {"url":"https://test-invoice-hero-a1b2c3d4.apps.kyper.shop","expires_at":"2026-03-06T17:00:00Z","status":"running"}
 ```
 
 #### `kyper push`

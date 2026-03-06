@@ -306,3 +306,103 @@ func (c *Client) DeleteVersion(versionID int) (*MessageResponse, error) {
 	err := c.doJSON("DELETE", path, nil, &resp)
 	return &resp, err
 }
+
+// Test Deploy
+
+type TestDeployResponse struct {
+	VersionID int      `json:"version_id"`
+	Message   string   `json:"message"`
+	Warnings  []string `json:"warnings"`
+}
+
+type TestDeployment struct {
+	ID                 int    `json:"id"`
+	Status             string `json:"status"`
+	URL                string `json:"url"`
+	ExpiresAt          string `json:"expires_at"`
+	ProvisionLog       string `json:"provision_log"`
+	ProvisionLogCursor int    `json:"provision_log_cursor"`
+}
+
+type TestDeployStatus struct {
+	VersionID   int             `json:"version_id"`
+	BuildStatus string          `json:"build_status"`
+	Deployment  *TestDeployment `json:"deployment"`
+}
+
+func (c *Client) CreateTestDeploy(slug, kyperYml, zipPath string, envVars map[string]string) (*TestDeployResponse, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	if err := writer.WriteField("kyper_yml", kyperYml); err != nil {
+		return nil, fmt.Errorf("writing kyper_yml field: %w", err)
+	}
+
+	if len(envVars) > 0 {
+		jsonVars, err := json.Marshal(envVars)
+		if err != nil {
+			return nil, fmt.Errorf("encoding env vars: %w", err)
+		}
+		if err := writer.WriteField("env_vars", string(jsonVars)); err != nil {
+			return nil, fmt.Errorf("writing env_vars field: %w", err)
+		}
+	}
+
+	file, err := os.Open(zipPath)
+	if err != nil {
+		return nil, fmt.Errorf("opening zip file: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+
+	part, err := writer.CreateFormFile("source_zip", filepath.Base(zipPath))
+	if err != nil {
+		return nil, fmt.Errorf("creating form file: %w", err)
+	}
+	if _, err := io.Copy(part, file); err != nil {
+		return nil, fmt.Errorf("copying zip to form: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("finalizing multipart form: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", c.BaseURL+"/api/v1/apps/"+slug+"/test_deploy", body)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("uploading test deploy: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, parseAPIError(resp.StatusCode, respBody)
+	}
+
+	var tr TestDeployResponse
+	if err := json.Unmarshal(respBody, &tr); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+	return &tr, nil
+}
+
+func (c *Client) GetTestDeploy(slug string, provisionLogCursor int) (*TestDeployStatus, error) {
+	var status TestDeployStatus
+	path := fmt.Sprintf("/api/v1/apps/%s/test_deploy?provision_log_cursor=%d", slug, provisionLogCursor)
+	err := c.doJSON("GET", path, nil, &status)
+	return &status, err
+}
+
+func (c *Client) DeleteTestDeploy(slug string) (*MessageResponse, error) {
+	var resp MessageResponse
+	err := c.doJSON("DELETE", "/api/v1/apps/"+slug+"/test_deploy", nil, &resp)
+	return &resp, err
+}

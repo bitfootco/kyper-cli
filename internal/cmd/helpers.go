@@ -146,6 +146,46 @@ func printBuildStatus(status string) {
 	}
 }
 
+// syncApp creates the app if it doesn't exist on Kyper, or updates its
+// metadata if it does. Returns a wrapped error on failure.
+func syncApp(client *api.Client, slug string, kf *config.KyperFile) error {
+	return ui.RunWithSpinner("Syncing app...", jsonOutput, func() error {
+		_, statusErr := client.GetAppStatus(slug)
+		if statusErr != nil {
+			if api.IsNotFound(statusErr) {
+				_, createErr := client.CreateApp(buildAppParams(kf))
+				return createErr
+			}
+			return statusErr
+		}
+		_, updateErr := client.UpdateApp(slug, buildUpdateParams(kf))
+		return updateErr
+	})
+}
+
+// parseEnvFile reads a .env-style file and returns a map of key→value pairs.
+// Blank lines and lines starting with # are skipped. Lines without = are skipped.
+// Returns an empty map (not an error) if the file doesn't exist.
+func parseEnvFile(path string) map[string]string {
+	out := map[string]string{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return out
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		k, v, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		out[strings.TrimSpace(k)] = strings.TrimSpace(v)
+	}
+	return out
+}
+
 func openBrowser(url string) error {
 	var cmd string
 	switch runtime.GOOS {
