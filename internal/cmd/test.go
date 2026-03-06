@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var testEnvFile string
+
 // maxNilDeploymentPolls is how many times tailProvisionLog will retry when the
 // deployment record is still null right after build completes (~20s window).
 const maxNilDeploymentPolls = 10
@@ -26,6 +28,7 @@ func init() {
 	rootCmd.AddCommand(testCmd)
 	testCmd.Flags().BoolVar(&testStatus, "status", false, "Show current test deploy status")
 	testCmd.Flags().BoolVar(&testDestroy, "destroy", false, "Tear down the active test deploy")
+	testCmd.Flags().StringVar(&testEnvFile, "env-file", ".env", "Path to .env file to load for the test deployment")
 }
 
 var testCmd = &cobra.Command{
@@ -95,12 +98,23 @@ auto-destroys after 1 hour.`,
 			fmt.Printf("Archive: %s\n", humanizeBytes(info.Size()))
 		}
 
+		// Sync app (create or update)
+		if err = syncApp(client, slug, kf); err != nil {
+			return fmt.Errorf("syncing app: %w", err)
+		}
+
+		// Load env vars from file (silently skip if missing)
+		envVars := parseEnvFile(testEnvFile)
+		if !jsonOutput && len(envVars) > 0 {
+			fmt.Printf("Loaded %d env var(s) from %s\n", len(envVars), testEnvFile)
+		}
+
 		// Submit test deploy
 		apiYAML := slugifyYAMLName(raw, slug)
 		var tr *api.TestDeployResponse
 		err = ui.RunWithSpinner("Queuing test deploy...", jsonOutput, func() error {
 			var uploadErr error
-			tr, uploadErr = client.CreateTestDeploy(slug, string(apiYAML), zipPath)
+			tr, uploadErr = client.CreateTestDeploy(slug, string(apiYAML), zipPath, envVars)
 			return uploadErr
 		})
 		if err != nil {

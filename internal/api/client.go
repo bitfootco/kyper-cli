@@ -330,12 +330,22 @@ type TestDeployStatus struct {
 	Deployment  *TestDeployment `json:"deployment"`
 }
 
-func (c *Client) CreateTestDeploy(slug, kyperYml, zipPath string) (*TestDeployResponse, error) {
+func (c *Client) CreateTestDeploy(slug, kyperYml, zipPath string, envVars map[string]string) (*TestDeployResponse, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
 	if err := writer.WriteField("kyper_yml", kyperYml); err != nil {
 		return nil, fmt.Errorf("writing kyper_yml field: %w", err)
+	}
+
+	if len(envVars) > 0 {
+		jsonVars, err := json.Marshal(envVars)
+		if err != nil {
+			return nil, fmt.Errorf("encoding env vars: %w", err)
+		}
+		if err := writer.WriteField("env_vars", string(jsonVars)); err != nil {
+			return nil, fmt.Errorf("writing env_vars field: %w", err)
+		}
 	}
 
 	file, err := os.Open(zipPath)

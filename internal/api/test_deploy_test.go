@@ -50,7 +50,7 @@ func TestCreateTestDeploy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, err := client.CreateTestDeploy("my-app", "name: my-app\n", zipPath)
+	resp, err := client.CreateTestDeploy("my-app", "name: my-app\n", zipPath, nil)
 	if err != nil {
 		t.Fatalf("CreateTestDeploy failed: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestCreateTestDeployError(t *testing.T) {
 	zipPath := filepath.Join(dir, "source.zip")
 	_ = os.WriteFile(zipPath, []byte("fake"), 0644)
 
-	_, err := client.CreateTestDeploy("my-app", "name: my-app\n", zipPath)
+	_, err := client.CreateTestDeploy("my-app", "name: my-app\n", zipPath, nil)
 	if err == nil {
 		t.Fatal("expected error on 429")
 	}
@@ -92,6 +92,41 @@ func TestCreateTestDeployError(t *testing.T) {
 	}
 	if apiErr.StatusCode != 429 {
 		t.Errorf("expected status 429, got %d", apiErr.StatusCode)
+	}
+}
+
+func TestCreateTestDeployWithEnvVars(t *testing.T) {
+	var gotEnvVars string
+
+	client, srv := testClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Errorf("ParseMultipartForm failed: %v", err)
+			return
+		}
+		gotEnvVars = r.FormValue("env_vars")
+		w.WriteHeader(201)
+		_ = json.NewEncoder(w).Encode(TestDeployResponse{VersionID: 1, Message: "queued."})
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	zipPath := filepath.Join(dir, "source.zip")
+	_ = os.WriteFile(zipPath, []byte("fake"), 0644)
+
+	envVars := map[string]string{"MY_KEY": "hello", "OTHER": "world"}
+	_, err := client.CreateTestDeploy("my-app", "name: my-app\n", zipPath, envVars)
+	if err != nil {
+		t.Fatalf("CreateTestDeploy failed: %v", err)
+	}
+	if gotEnvVars == "" {
+		t.Fatal("expected env_vars field to be set")
+	}
+	var parsed map[string]string
+	if err := json.Unmarshal([]byte(gotEnvVars), &parsed); err != nil {
+		t.Fatalf("env_vars not valid JSON: %v", err)
+	}
+	if parsed["MY_KEY"] != "hello" {
+		t.Errorf("expected MY_KEY=hello, got %q", parsed["MY_KEY"])
 	}
 }
 

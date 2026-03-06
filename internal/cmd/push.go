@@ -71,23 +71,7 @@ var pushCmd = &cobra.Command{
 		}
 
 		// 4. Sync app (create or update)
-		err = ui.RunWithSpinner("Syncing app...", jsonOutput, func() error {
-			_, statusErr := client.GetAppStatus(slug)
-			if statusErr != nil {
-				if api.IsNotFound(statusErr) {
-					// Create new app
-					params := buildAppParams(kf)
-					_, createErr := client.CreateApp(params)
-					return createErr
-				}
-				return statusErr
-			}
-			// Update existing app
-			params := buildUpdateParams(kf)
-			_, updateErr := client.UpdateApp(slug, params)
-			return updateErr
-		})
-		if err != nil {
+		if err = syncApp(client, slug, kf); err != nil {
 			return fmt.Errorf("syncing app: %w", err)
 		}
 		if !jsonOutput {
