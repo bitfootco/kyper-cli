@@ -137,32 +137,27 @@ auto-destroys after 1 hour.`,
 			fmt.Println(ui.Bold.Render("— Build phase —"))
 		}
 
-		var buildStatus, buildLog string
+		var buildStatus string
 		if jsonOutput {
 			buildStatus, _, err = waitForBuild(client, tr.VersionID, true)
+			if err != nil {
+				return err
+			}
 		} else {
-			buildStatus, buildLog, err = waitForBuild(client, tr.VersionID, false)
-		}
-		if err != nil {
-			return err
-		}
-
-		if !jsonOutput {
-			printBuildStatus(buildStatus)
+			buildStatus, err = tailLogMilestones(client, tr.VersionID)
+			if err != nil {
+				return err
+			}
 		}
 
 		if buildStatus == "build_failed" {
-			if !jsonOutput && buildLog != "" {
-				fmt.Println()
-				fmt.Print(buildLog)
-			}
 			if jsonOutput {
 				_ = ui.PrintJSON(map[string]interface{}{
 					"version_id":   tr.VersionID,
 					"build_status": buildStatus,
 				})
 			}
-			return fmt.Errorf("build failed — run 'kyper build' locally to debug")
+			return fmt.Errorf("build failed — run 'kyper logs' to see the full build log")
 		}
 
 		// Phase 2: poll provision log
