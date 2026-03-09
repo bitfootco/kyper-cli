@@ -131,6 +131,76 @@ func waitForBuild(client *api.Client, versionID int, jsonMode bool) (status stri
 	return status, buildLog, nil
 }
 
+// tailLogMilestones polls the build log and prints human-friendly milestone lines
+// as key phases are detected. Returns the final build status.
+func tailLogMilestones(client *api.Client, versionID int) (string, error) {
+	type milestone struct {
+		marker string
+		label  string
+		seen   bool
+	}
+	steps := []milestone{
+		{marker: `$ docker build`, label: "  Building image..."},
+		{marker: `$ docker push`, label: "  Pushing to registry..."},
+		{marker: `--- Security scan (Trivy) ---`, label: "  Running security scan..."},
+	}
+
+	cursor := 0
+	timeout := time.After(30 * time.Minute)
+	var fullLog strings.Builder
+
+	for {
+		select {
+		case <-timeout:
+			return "", fmt.Errorf("build timed out after 30 minutes")
+		default:
+		}
+
+		bl, err := client.GetBuildLog(versionID, cursor)
+		if err != nil {
+			return "", fmt.Errorf("fetching build log: %w", err)
+		}
+		if bl.Log != "" {
+			fullLog.WriteString(bl.Log)
+			accumulated := fullLog.String()
+			for i := range steps {
+				if !steps[i].seen && strings.Contains(accumulated, steps[i].marker) {
+					steps[i].seen = true
+					fmt.Println(ui.DimStyle.Render(steps[i].label))
+				}
+			}
+		}
+		cursor = bl.Cursor
+
+		if bl.Complete {
+			fmt.Println()
+			if bl.Status == "build_failed" {
+				printBuildFailureContext(fullLog.String())
+			}
+			printBuildStatus(bl.Status)
+			return bl.Status, nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
+// printBuildFailureContext prints a concise failure summary from the build log.
+// For Trivy failures it shows the formatted scan summary; for Docker build
+// failures it shows the final lines of output (the actual error).
+func printBuildFailureContext(log string) {
+	if idx := strings.Index(log, "Scan result: FAILED"); idx != -1 {
+		fmt.Println(log[idx:])
+		return
+	}
+	lines := strings.Split(strings.TrimRight(log, "\n"), "\n")
+	start := len(lines) - 25
+	if start < 0 {
+		start = 0
+	}
+	fmt.Println(strings.Join(lines[start:], "\n"))
+	fmt.Println()
+}
+
 func printBuildStatus(status string) {
 	switch status {
 	case "published", "built":
