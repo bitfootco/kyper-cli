@@ -95,6 +95,9 @@ var pushCmd = &cobra.Command{
 
 		if !jsonOutput {
 			ui.PrintSuccess(fmt.Sprintf("Version %s uploaded", vr.Version))
+			if vr.BuildURL != "" {
+				fmt.Printf("Track this build at: %s\n", vr.BuildURL)
+			}
 			fmt.Println()
 		}
 

@@ -64,6 +64,7 @@ type VersionResponse struct {
 	SubmittedAt   string `json:"submitted_at"`
 	Message       string `json:"message"`
 	SubmissionURL string `json:"submission_url"`
+	BuildURL      string `json:"build_url"`
 }
 
 type BuildLog struct {
@@ -313,6 +314,7 @@ type TestDeployResponse struct {
 	VersionID int      `json:"version_id"`
 	Message   string   `json:"message"`
 	Warnings  []string `json:"warnings"`
+	BuildURL  string   `json:"build_url"`
 }
 
 type TestDeployment struct {
