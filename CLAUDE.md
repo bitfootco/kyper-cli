@@ -50,7 +50,8 @@ internal/
     whoami.go                   # Show authenticated user
     version_cmd.go              # CLI version display
     helpers.go                  # Shared: requireAuth(), loadKyperYML(), tailLog()
-    build.go                    # Local Docker image build
+    build.go                    # Local Docker image build (with optional --scan for Trivy security gate)
+    build_test.go               # Tests for Trivy JSON parser / gate logic
     check.go                    # Validate kyper.yml + confirm Dockerfile exists
   api/                          # HTTP client layer
     client.go                   # All API methods
@@ -110,7 +111,7 @@ kyper login       — Authenticate via browser (device auth flow)
 kyper init        — Interactive project setup wizard
 kyper validate    — Validate kyper.yml locally
 kyper check       — Validate kyper.yml + confirm Dockerfile exists
-kyper build       — Build the Docker image locally
+kyper build       — Build the Docker image locally (with optional --scan for security gate)
 kyper tag         — Bump the version in kyper.yml (patch/minor/major)
 kyper push        — Validate + archive + upload + tail build log
 kyper test        — Build + ephemeral deploy for pre-submission testing
@@ -358,19 +359,29 @@ Validates kyper.yml and confirms the referenced Dockerfile exists on disk. Provi
 
 kyper build
 
-Builds the Docker image locally using the project's Dockerfile. Useful for debugging build failures before pushing.
+Builds the Docker image locally using the project's Dockerfile. Useful for debugging build failures before pushing. With --scan, also runs the same Trivy security gate as the remote build pipeline.
 
 1. Verify docker is in $PATH (error with install link if missing)
 2. Load + validate kyper.yml (fail fast on invalid config)
 3. Confirm Dockerfile exists at docker.dockerfile path
 4. Run docker build -f <dockerfile> -t kyper-local/<slug>:<version> .
 5. Stream Docker output directly to stdout/stderr
-6. On success: print image tag + suggest `kyper push`
+6. (with --scan) Verify trivy is in $PATH, run Trivy scan, apply gate logic:
+   - Fixable HIGH/CRITICAL vulns → "failed" (exit 1)
+   - Unfixed vulns only → "passed_with_advisories" (exit 0, advisory section shown)
+   - Ignored CVEs (from kyper.yml security.ignore_cves) → separated into IGNORED section
+7. On success: print image tag + suggest `kyper push`
+
+Gate logic (parseTrivyJSON): split vulns into ignored → fixable (blocking) / unfixed (advisory).
+Only fixable vulns fail the scan. This mirrors the Rails-side gate in App::BuildJob#parse_trivy_output.
 
 Flags:
 - --no-cache: Build without Docker layer caching
+- --scan: Run Trivy security scan after building (requires trivy in $PATH)
+- --fix: With --scan, show only blocking (fixable) vulnerabilities
 
---json mode: {"image": "<tag>", "status": "success"}
+--json mode (no scan): {"image": "<tag>", "status": "success"}
+--json mode (with scan): {"image", "status", "fixable_critical", "fixable_high", "unfixed_count", "ignored_count", "blocking": [...], "advisory": [...], "ignored": [...]}
 
 kyper test
 
