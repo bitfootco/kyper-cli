@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/bitfootco/kyper-cli/internal/config"
 	"github.com/bitfootco/kyper-cli/internal/kyperfile"
 	"github.com/bitfootco/kyper-cli/internal/ui"
 	"github.com/spf13/cobra"
@@ -30,6 +29,11 @@ var buildCmd = &cobra.Command{
 	Short: "Build the Docker image locally (with optional security scan)",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// 0. Flag validation
+		if buildFixOnly && !buildScan {
+			return fmt.Errorf("--fix requires --scan")
+		}
+
 		// 1. Check docker is available
 		if _, err := exec.LookPath("docker"); err != nil {
 			return fmt.Errorf("docker not found in $PATH — install Docker: https://docs.docker.com/get-docker/")
@@ -94,7 +98,13 @@ var buildCmd = &cobra.Command{
 
 		// 5. Security scan (if --scan)
 		if buildScan {
-			return runBuildScan(kf, imageTag)
+			ignoredCVEs := make(map[string]bool)
+			for _, entry := range kf.Security.IgnoreCVEs {
+				if entry.ID != "" {
+					ignoredCVEs[entry.ID] = true
+				}
+			}
+			return runBuildScan(imageTag, ignoredCVEs)
 		}
 
 		// 6. Success (no scan)
@@ -114,7 +124,7 @@ var buildCmd = &cobra.Command{
 	},
 }
 
-func runBuildScan(kf *config.KyperFile, imageTag string) error {
+func runBuildScan(imageTag string, ignoredCVEs map[string]bool) error {
 	// Check trivy is available
 	if _, err := exec.LookPath("trivy"); err != nil {
 		return fmt.Errorf("trivy not found in $PATH — required for --scan\n\nInstall:\n  brew install trivy          # macOS\n  apt install trivy           # Debian/Ubuntu\n  https://github.com/aquasecurity/trivy/releases  # other")
@@ -128,13 +138,10 @@ func runBuildScan(kf *config.KyperFile, imageTag string) error {
 
 	trivyCmd := exec.Command("trivy", "image", "--format", "json",
 		"--exit-code", "1", "--severity", "HIGH,CRITICAL", "--no-progress", imageTag)
-	trivyOut, _ := trivyCmd.Output() // exit code 1 is expected when vulns found
-
-	ignoredCVEs := make(map[string]bool)
-	for _, entry := range kf.Security.IgnoreCVEs {
-		if entry.ID != "" {
-			ignoredCVEs[entry.ID] = true
-		}
+	trivyOut, trivyErr := trivyCmd.Output()
+	// exit code 1 is expected when vulns are found; only fail on empty output
+	if len(trivyOut) == 0 && trivyErr != nil {
+		return fmt.Errorf("trivy failed to scan the image: %w", trivyErr)
 	}
 
 	sr, err := parseTrivyJSON(trivyOut, ignoredCVEs)
