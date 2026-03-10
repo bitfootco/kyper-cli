@@ -30,6 +30,15 @@ var KnownDeps = []string{
 	"s3",
 }
 
+var KnownIntegrations = []string{
+	"stripe",
+	"twilio",
+	"sendgrid",
+	"google_maps",
+	"resend",
+	"postmark",
+}
+
 var AllowedDepVersions = map[string][]string{
 	"postgres":      {"14", "15", "16"},
 	"mysql":         {"8"},
@@ -87,6 +96,7 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validateHealthcheck(kf, r)
 	validatePricing(kf, r)
 	validateEnv(kf, r)
+	validateIntegrations(kf, r)
 	checkDBWithoutHook(kf, r)
 	validateSecurity(kf, r)
 
@@ -262,6 +272,28 @@ func validateEnv(kf *config.KyperFile, r *ValidationResult) {
 		}
 		if autoInjected[e] {
 			addWarning(r, fmt.Sprintf("env %q is auto-injected by Kyper and cannot be overridden", e))
+		}
+	}
+}
+
+func validateIntegrations(kf *config.KyperFile, r *ValidationResult) {
+	if len(kf.Integrations) == 0 {
+		return
+	}
+	for _, name := range kf.Integrations {
+		if name == "" {
+			addError(r, "integration entries must be non-empty strings")
+			continue
+		}
+		known := false
+		for _, k := range KnownIntegrations {
+			if name == k {
+				known = true
+				break
+			}
+		}
+		if !known {
+			addError(r, fmt.Sprintf("unknown integration %q — known integrations: %s", name, strings.Join(KnownIntegrations, ", ")))
 		}
 	}
 }
