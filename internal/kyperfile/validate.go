@@ -60,6 +60,10 @@ var DBDeps = map[string]bool{
 
 var semverRegexp = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 var nameHasAlphanumRegexp = regexp.MustCompile(`[a-zA-Z0-9]`)
+var cveIDRegexp = regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`)
+
+const maxIgnoredCVEs = 25
+const minReasonLength = 10
 
 type ValidationResult struct {
 	Valid    bool     `json:"valid"`
@@ -84,6 +88,7 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validatePricing(kf, r)
 	validateEnv(kf, r)
 	checkDBWithoutHook(kf, r)
+	validateSecurity(kf, r)
 
 	return r
 }
@@ -272,4 +277,30 @@ func checkDBWithoutHook(kf *config.KyperFile, r *ValidationResult) {
 	if hasDB && kf.Hooks.OnDeploy == "" {
 		addWarning(r, "database dependency present without hooks.on_deploy — consider adding a migration hook")
 	}
+}
+
+func validateSecurity(kf *config.KyperFile, r *ValidationResult) {
+	if len(kf.Security.IgnoreCVEs) == 0 {
+		return
+	}
+
+	if len(kf.Security.IgnoreCVEs) > maxIgnoredCVEs {
+		addError(r, fmt.Sprintf("security.ignore_cves is limited to %d entries (got %d)", maxIgnoredCVEs, len(kf.Security.IgnoreCVEs)))
+	}
+
+	for i, entry := range kf.Security.IgnoreCVEs {
+		if entry.ID == "" {
+			addError(r, fmt.Sprintf("security.ignore_cves[%d].id is required", i))
+		} else if !cveIDRegexp.MatchString(entry.ID) {
+			addError(r, fmt.Sprintf("security.ignore_cves[%d].id must match CVE-YYYY-NNNNN format (got %q)", i, entry.ID))
+		}
+
+		if entry.Reason == "" {
+			addError(r, fmt.Sprintf("security.ignore_cves[%d].reason is required", i))
+		} else if len(entry.Reason) < minReasonLength {
+			addError(r, fmt.Sprintf("security.ignore_cves[%d].reason must be at least %d characters", i, minReasonLength))
+		}
+	}
+
+	addWarning(r, fmt.Sprintf("security.ignore_cves is set — %d CVE(s) will bypass the security gate", len(kf.Security.IgnoreCVEs)))
 }

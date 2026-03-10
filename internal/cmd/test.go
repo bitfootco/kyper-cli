@@ -129,6 +129,9 @@ auto-destroys after 1 hour.`,
 			for _, w := range tr.Warnings {
 				ui.PrintWarning(w)
 			}
+			if tr.BuildURL != "" {
+				fmt.Printf("Track this build at: %s\n", tr.BuildURL)
+			}
 			fmt.Println()
 		}
 

@@ -22,6 +22,7 @@ type KyperFile struct {
 	Env         []string          `yaml:"env,omitempty"`
 	Hooks       HooksConfig       `yaml:"hooks,omitempty"`
 	Healthcheck HealthcheckConfig `yaml:"healthcheck,omitempty"`
+	Security    SecurityConfig    `yaml:"security,omitempty"`
 }
 
 type DockerConfig struct {
@@ -48,6 +49,15 @@ type HealthcheckConfig struct {
 	Path     string `yaml:"path,omitempty"`
 	Interval int    `yaml:"interval,omitempty"`
 	Timeout  int    `yaml:"timeout,omitempty"`
+}
+
+type SecurityConfig struct {
+	IgnoreCVEs []IgnoreCVE `yaml:"ignore_cves,omitempty"`
+}
+
+type IgnoreCVE struct {
+	ID     string `yaml:"id"`
+	Reason string `yaml:"reason"`
 }
 
 // DepEntry represents a dependency with optional version and storage config.
