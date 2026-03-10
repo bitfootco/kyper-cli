@@ -19,8 +19,9 @@ type KyperFile struct {
 	Deps        []DepEntry        `yaml:"deps,omitempty"`
 	Pricing     PricingConfig     `yaml:"pricing,omitempty"`
 	Resources   ResourceConfig    `yaml:"resources,omitempty"`
-	Env         []string          `yaml:"env,omitempty"`
-	Hooks       HooksConfig       `yaml:"hooks,omitempty"`
+	Env          []string          `yaml:"env,omitempty"`
+	Integrations []string          `yaml:"integrations,omitempty"`
+	Hooks        HooksConfig       `yaml:"hooks,omitempty"`
 	Healthcheck HealthcheckConfig `yaml:"healthcheck,omitempty"`
 	Security    SecurityConfig    `yaml:"security,omitempty"`
 }

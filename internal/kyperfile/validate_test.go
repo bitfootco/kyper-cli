@@ -396,6 +396,29 @@ func TestDBWithHookNoWarning(t *testing.T) {
 }
 
 
+func TestIntegrationsValid(t *testing.T) {
+	kf := validKyperFile()
+	kf.Integrations = []string{"stripe", "twilio"}
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("expected valid, got errors: %v", r.Errors)
+	}
+}
+
+func TestIntegrationsUnknown(t *testing.T) {
+	kf := validKyperFile()
+	kf.Integrations = []string{"stripe", "unknown_service"}
+	r := Validate(kf, false)
+	assertContainsError(t, r, "unknown integration \"unknown_service\"")
+}
+
+func TestIntegrationsEmptyString(t *testing.T) {
+	kf := validKyperFile()
+	kf.Integrations = []string{"stripe", ""}
+	r := Validate(kf, false)
+	assertContainsError(t, r, "integration entries must be non-empty strings")
+}
+
 func TestPricingRequired(t *testing.T) {
 	kf := validKyperFile()
 	kf.Pricing.OneTime = nil
