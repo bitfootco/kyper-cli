@@ -23,6 +23,7 @@ pricing:
   subscription: 9.99
 healthcheck:
   path: /up
+  initial_delay: 15
   interval: 30
   timeout: 10
 `
@@ -63,6 +64,9 @@ healthcheck:
 	}
 	if kf.Healthcheck.Path != "/up" {
 		t.Errorf("expected healthcheck path '/up', got %q", kf.Healthcheck.Path)
+	}
+	if kf.Healthcheck.InitialDelay != 15 {
+		t.Errorf("expected healthcheck initial_delay 15, got %d", kf.Healthcheck.InitialDelay)
 	}
 }
 

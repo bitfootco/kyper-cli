@@ -283,6 +283,29 @@ func TestHealthcheckTimeoutPositive(t *testing.T) {
 	assertContainsError(t, r, "healthcheck.timeout must be a positive integer")
 }
 
+func TestHealthcheckInitialDelay(t *testing.T) {
+	kf := validKyperFile()
+	kf.Healthcheck.InitialDelay = 30
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("expected valid with initial_delay 30")
+	}
+
+	kf.Healthcheck.InitialDelay = 0
+	r = Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("expected valid with initial_delay 0 (unset)")
+	}
+
+	kf.Healthcheck.InitialDelay = 301
+	r = Validate(kf, false)
+	assertContainsError(t, r, "healthcheck.initial_delay must be between 0 and 300")
+
+	kf.Healthcheck.InitialDelay = -1
+	r = Validate(kf, false)
+	assertContainsError(t, r, "healthcheck.initial_delay must be between 0 and 300")
+}
+
 func TestPricingMinimum(t *testing.T) {
 	kf := validKyperFile()
 	low := 0.50
