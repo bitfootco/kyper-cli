@@ -246,6 +246,9 @@ func validateHealthcheck(kf *config.KyperFile, r *ValidationResult) {
 	if kf.Healthcheck.Timeout != 0 && kf.Healthcheck.Timeout < 1 {
 		addError(r, "healthcheck.timeout must be a positive integer")
 	}
+	if kf.Healthcheck.InitialDelay < 0 || kf.Healthcheck.InitialDelay > 300 {
+		addError(r, "healthcheck.initial_delay must be between 0 and 300")
+	}
 }
 
 func validatePricing(kf *config.KyperFile, r *ValidationResult) {

@@ -47,9 +47,10 @@ type HooksConfig struct {
 }
 
 type HealthcheckConfig struct {
-	Path     string `yaml:"path,omitempty"`
-	Interval int    `yaml:"interval,omitempty"`
-	Timeout  int    `yaml:"timeout,omitempty"`
+	Path         string `yaml:"path,omitempty"`
+	InitialDelay int    `yaml:"initial_delay,omitempty"`
+	Interval     int    `yaml:"interval,omitempty"`
+	Timeout      int    `yaml:"timeout,omitempty"`
 }
 
 type SecurityConfig struct {
