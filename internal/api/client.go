@@ -403,6 +403,25 @@ func (c *Client) GetTestDeploy(slug string, provisionLogCursor int) (*TestDeploy
 	return &status, err
 }
 
+type PodLogEntry struct {
+	Status map[string]interface{} `json:"status"`
+	Logs   string                 `json:"logs"`
+}
+
+type TestDeployLogsResponse struct {
+	DeploymentID     int                    `json:"deployment_id"`
+	DeploymentStatus string                 `json:"deployment_status"`
+	URL              string                 `json:"url"`
+	Pods             map[string]PodLogEntry `json:"pods"`
+}
+
+func (c *Client) GetTestDeployLogs(slug string, tail int) (*TestDeployLogsResponse, error) {
+	var resp TestDeployLogsResponse
+	path := fmt.Sprintf("/api/v1/apps/%s/test_deploy/logs?tail=%d", slug, tail)
+	err := c.doJSON("GET", path, nil, &resp)
+	return &resp, err
+}
+
 func (c *Client) DeleteTestDeploy(slug string) (*MessageResponse, error) {
 	var resp MessageResponse
 	err := c.doJSON("DELETE", "/api/v1/apps/"+slug+"/test_deploy", nil, &resp)
