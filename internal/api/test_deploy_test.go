@@ -227,6 +227,63 @@ func TestDeleteTestDeploy(t *testing.T) {
 	}
 }
 
+func TestGetTestDeployLogs(t *testing.T) {
+	client, srv := testClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/v1/apps/my-app/test_deploy/logs" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("tail") != "200" {
+			t.Errorf("unexpected tail: %q", r.URL.Query().Get("tail"))
+		}
+		_ = json.NewEncoder(w).Encode(TestDeployLogsResponse{
+			DeploymentID:     42,
+			DeploymentStatus: "running",
+			URL:              "https://test-myapp.apps.kyper.shop",
+			Pods: map[string]PodLogEntry{
+				"web-abc123": {
+					Status: map[string]interface{}{"phase": "Running", "restarts": float64(0)},
+					Logs:   "Listening on port 3000\n",
+				},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	resp, err := client.GetTestDeployLogs("my-app", 200)
+	if err != nil {
+		t.Fatalf("GetTestDeployLogs failed: %v", err)
+	}
+	if resp.DeploymentID != 42 {
+		t.Errorf("expected DeploymentID 42, got %d", resp.DeploymentID)
+	}
+	if resp.DeploymentStatus != "running" {
+		t.Errorf("expected status 'running', got %q", resp.DeploymentStatus)
+	}
+	pod, ok := resp.Pods["web-abc123"]
+	if !ok {
+		t.Fatal("expected pod 'web-abc123' in response")
+	}
+	if pod.Logs != "Listening on port 3000\n" {
+		t.Errorf("unexpected logs: %q", pod.Logs)
+	}
+}
+
+func TestGetTestDeployLogs404(t *testing.T) {
+	client, srv := testClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "No active test deployment found"})
+	}))
+	defer srv.Close()
+
+	_, err := client.GetTestDeployLogs("my-app", 100)
+	if !IsNotFound(err) {
+		t.Errorf("expected IsNotFound to be true, got %v", err)
+	}
+}
+
 func TestDeleteTestDeploy404(t *testing.T) {
 	client, srv := testClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)

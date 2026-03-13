@@ -26,9 +26,14 @@ var (
 
 func init() {
 	rootCmd.AddCommand(testCmd)
-	testCmd.Flags().BoolVar(&testStatus, "status", false, "Show current test deploy status")
-	testCmd.Flags().BoolVar(&testDestroy, "destroy", false, "Tear down the active test deploy")
+	testCmd.Flags().BoolVar(&testStatus, "status", false, "Show current test deploy status (alias for 'kyper test status')")
+	testCmd.Flags().BoolVar(&testDestroy, "destroy", false, "Tear down the active test deploy (alias for 'kyper test destroy')")
 	testCmd.Flags().StringVar(&testEnvFile, "env-file", ".env", "Path to .env file to load for the test deployment")
+
+	testCmd.AddCommand(testStatusCmd)
+	testCmd.AddCommand(testDestroyCmd)
+	testCmd.AddCommand(testLogsCmd)
+	testLogsCmd.Flags().IntVar(&testLogsTail, "tail", 100, "Number of log lines per pod (1-500)")
 }
 
 var testCmd = &cobra.Command{
@@ -36,7 +41,12 @@ var testCmd = &cobra.Command{
 	Short: "Build and ephemerally deploy your app for testing",
 	Long: `Build and deploy your app on Kyper's real K8s infrastructure for testing.
 The deployment includes your declared deps (Postgres, Redis, etc.) and
-auto-destroys after 1 hour.`,
+auto-destroys after 1 hour.
+
+Subcommands:
+  status    Show current test deploy status
+  destroy   Tear down the active test deploy
+  logs      Show runtime container logs`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		_, client, err := requireAuth()
@@ -55,12 +65,12 @@ auto-destroys after 1 hour.`,
 
 		slug := slugFromTitle(kf.Name)
 
-		// --status: show current test deploy
+		// --status: show current test deploy (flag alias for subcommand)
 		if testStatus {
 			return runTestStatus(client, slug)
 		}
 
-		// --destroy: tear down active test deploy
+		// --destroy: tear down active test deploy (flag alias for subcommand)
 		if testDestroy {
 			return runTestDestroy(client, slug)
 		}
@@ -192,11 +202,110 @@ auto-destroys after 1 hour.`,
 			fmt.Println()
 			fmt.Println(ui.SuccessBanner.Render("✓ Test deploy is live!"))
 			fmt.Printf("  %s\n", deployment.URL)
-			fmt.Printf("  Auto-destroys %s. Run 'kyper test --destroy' to tear it down early.\n", expiresIn)
+			fmt.Printf("  Auto-destroys %s. Run 'kyper test destroy' to tear it down early.\n", expiresIn)
 		}
 
 		return nil
 	},
+}
+
+var testStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Show current test deploy status",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		_, client, err := requireAuth()
+		if err != nil {
+			return err
+		}
+		kf, _, err := loadKyperYML()
+		if err != nil {
+			return err
+		}
+		return runTestStatus(client, slugFromTitle(kf.Name))
+	},
+}
+
+var testDestroyCmd = &cobra.Command{
+	Use:   "destroy",
+	Short: "Tear down the active test deploy",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		_, client, err := requireAuth()
+		if err != nil {
+			return err
+		}
+		kf, _, err := loadKyperYML()
+		if err != nil {
+			return err
+		}
+		return runTestDestroy(client, slugFromTitle(kf.Name))
+	},
+}
+
+var testLogsTail int
+
+var testLogsCmd = &cobra.Command{
+	Use:   "logs",
+	Short: "Show runtime logs from the test deployment",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		_, client, err := requireAuth()
+		if err != nil {
+			return err
+		}
+		kf, _, err := loadKyperYML()
+		if err != nil {
+			return err
+		}
+		slug := slugFromTitle(kf.Name)
+		return runTestLogs(client, slug)
+	},
+}
+
+func runTestLogs(client *api.Client, slug string) error {
+	var resp *api.TestDeployLogsResponse
+	err := ui.RunWithSpinner("Fetching runtime logs...", jsonOutput, func() error {
+		var fetchErr error
+		resp, fetchErr = client.GetTestDeployLogs(slug, testLogsTail)
+		return fetchErr
+	})
+	if err != nil {
+		if api.IsNotFound(err) {
+			if jsonOutput {
+				_ = ui.PrintJSON(map[string]interface{}{"active": false})
+			} else {
+				ui.PrintWarning("No active test deployment found.")
+			}
+			return nil
+		}
+		return fmt.Errorf("fetching runtime logs: %w", err)
+	}
+
+	if jsonOutput {
+		_ = ui.PrintJSON(resp)
+		return nil
+	}
+
+	fmt.Printf("%s %s\n", ui.Label.Render("Status:"), resp.DeploymentStatus)
+	if resp.URL != "" {
+		fmt.Printf("%s %s\n", ui.Label.Render("URL:"), resp.URL)
+	}
+	fmt.Println()
+
+	for podName, entry := range resp.Pods {
+		fmt.Println(ui.Bold.Render(fmt.Sprintf("— %s —", podName)))
+		if phase, ok := entry.Status["phase"]; ok {
+			fmt.Printf("Phase: %v", phase)
+			if restarts, ok := entry.Status["restarts"]; ok {
+				fmt.Printf("  Restarts: %v", restarts)
+			}
+			fmt.Println()
+		}
+		fmt.Println(entry.Logs)
+	}
+
+	return nil
 }
 
 func runTestStatus(client *api.Client, slug string) error {
