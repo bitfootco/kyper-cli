@@ -56,7 +56,7 @@ var initCmd = &cobra.Command{
 		}
 
 		// Step 1: App basics — split into two groups so the category list doesn't crowd other fields
-		var title, category, tagline, description string
+		var title, category, tagline string
 
 		err = huh.NewForm(
 			huh.NewGroup(
@@ -76,11 +76,6 @@ var initCmd = &cobra.Command{
 					Description("Short pitch (max 160 chars, optional)").
 					Value(&tagline).
 					CharLimit(160),
-				huh.NewText().
-					Title("Description").
-					Description("What does your app do? (max 500 chars)").
-					Value(&description).
-					CharLimit(500),
 			),
 		).Run()
 		if err != nil {
@@ -218,7 +213,7 @@ var initCmd = &cobra.Command{
 		}
 
 		// Build KyperFile struct
-		kf := buildKyperFile(title, description, tagline, category, processes,
+		kf := buildKyperFile(title, tagline, category, processes,
 			selectedDeps, onDeploy, healthPath, oneTimeStr, subStr, memoryTier)
 
 		// Step 9: Preview
@@ -292,15 +287,14 @@ var initCmd = &cobra.Command{
 	},
 }
 
-func buildKyperFile(title, description, tagline, category string,
+func buildKyperFile(title, tagline, category string,
 	processes map[string]string, deps []config.DepEntry,
 	onDeploy, healthPath, oneTimeStr, subStr, memoryTier string) *config.KyperFile {
 
 	kf := &config.KyperFile{
-		Name:        title,
-		Version:     "0.1.0",
-		Description: description,
-		Category:    category,
+		Name:     title,
+		Version:  "0.1.0",
+		Category: category,
 		Docker: config.DockerConfig{
 			Dockerfile: "./Dockerfile",
 		},

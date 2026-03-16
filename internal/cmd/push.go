@@ -176,9 +176,8 @@ var pushCmd = &cobra.Command{
 
 func buildAppParams(kf *config.KyperFile) map[string]interface{} {
 	params := map[string]interface{}{
-		"title":       kf.Name,
-		"description": kf.Description,
-		"category":    kf.Category,
+		"title":    kf.Name,
+		"category": kf.Category,
 	}
 	if kf.Tagline != "" {
 		params["tagline"] = kf.Tagline
@@ -191,8 +190,7 @@ func buildAppParams(kf *config.KyperFile) map[string]interface{} {
 
 func buildUpdateParams(kf *config.KyperFile) map[string]interface{} {
 	params := map[string]interface{}{
-		"description": kf.Description,
-		"category":    kf.Category,
+		"category": kf.Category,
 	}
 	if kf.Tagline != "" {
 		params["tagline"] = kf.Tagline
