@@ -21,9 +21,10 @@ func init() {
 }
 
 var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Interactive project setup wizard",
-	Args:  cobra.NoArgs,
+	Use:     "init",
+	Short:   "Interactive project setup wizard",
+	GroupID: "project",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if jsonOutput {
 			return fmt.Errorf("init command requires interactive mode (remove --json flag)")

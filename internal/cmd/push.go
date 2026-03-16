@@ -22,7 +22,16 @@ func init() {
 var pushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "Validate, archive, upload, and build your app",
-	Args:  cobra.NoArgs,
+	Long: `Validate, archive, upload, and build your app on the Kyper marketplace.
+
+Subcommands:
+  status    Show app and latest version status
+  logs      Stream build logs for the latest version
+  retry     Retry a failed build
+  cancel    Cancel a pending or building version
+  withdraw  Withdraw a version from review`,
+	GroupID: "deploy",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// 1. Require auth
 		_, client, err := requireAuth()
@@ -45,7 +54,7 @@ var pushCmd = &cobra.Command{
 			for _, e := range result.Errors {
 				ui.PrintError(e)
 			}
-			return fmt.Errorf("kyper.yml validation failed — run 'kyper validate' for details")
+			return fmt.Errorf("kyper.yml validation failed — run 'kyper check' for details")
 		}
 		for _, w := range result.Warnings {
 			ui.PrintWarning(w)

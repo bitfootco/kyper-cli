@@ -37,8 +37,9 @@ func init() {
 }
 
 var testCmd = &cobra.Command{
-	Use:   "test",
-	Short: "Build and ephemerally deploy your app for testing",
+	Use:     "test",
+	Short:   "Build and ephemerally deploy your app for testing",
+	GroupID: "deploy",
 	Long: `Build and deploy your app on Kyper's real K8s infrastructure for testing.
 The deployment includes your declared deps (Postgres, Redis, etc.) and
 auto-destroys after 1 hour.
@@ -85,7 +86,7 @@ Subcommands:
 			for _, e := range result.Errors {
 				ui.PrintError(e)
 			}
-			return fmt.Errorf("kyper.yml validation failed — run 'kyper validate' for details")
+			return fmt.Errorf("kyper.yml validation failed — run 'kyper check' for details")
 		}
 		for _, w := range result.Warnings {
 			ui.PrintWarning(w)
@@ -170,7 +171,7 @@ Subcommands:
 					"build_status": buildStatus,
 				})
 			}
-			return fmt.Errorf("build failed — run 'kyper logs' to see the full build log")
+			return fmt.Errorf("build failed — run 'kyper push logs' to see the full build log")
 		}
 
 		// Phase 2: poll provision log

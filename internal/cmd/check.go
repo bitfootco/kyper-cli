@@ -9,63 +9,78 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var checkQuick bool
+
 func init() {
+	checkCmd.Flags().BoolVar(&checkQuick, "quick", false, "Skip Dockerfile existence check (validation only)")
 	rootCmd.AddCommand(checkCmd)
 }
 
 var checkCmd = &cobra.Command{
-	Use:   "check",
-	Short: "Validate kyper.yml and confirm Dockerfile exists",
-	Args:  cobra.NoArgs,
+	Use:     "check",
+	Short:   "Validate kyper.yml and confirm Dockerfile exists",
+	GroupID: "project",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		kf, _, err := loadKyperYML()
-		if err != nil {
-			return err
+		return runCheck(checkQuick)
+	},
+}
+
+func runCheck(quick bool) error {
+	kf, _, err := loadKyperYML()
+	if err != nil {
+		return err
+	}
+
+	result := kyperfile.Validate(kf, true)
+
+	// Also verify Dockerfile exists on disk unless --quick
+	dockerfileExists := true
+	if !quick && kf.Docker.Dockerfile != "" {
+		if _, statErr := os.Stat(kf.Docker.Dockerfile); os.IsNotExist(statErr) {
+			dockerfileExists = false
 		}
+	}
 
-		result := kyperfile.Validate(kf, true)
-
-		// Also verify Dockerfile exists on disk (validate already checks this,
-		// but we surface it explicitly for the check summary).
-		dockerfileExists := true
-		if kf.Docker.Dockerfile != "" {
-			if _, statErr := os.Stat(kf.Docker.Dockerfile); os.IsNotExist(statErr) {
-				dockerfileExists = false
-			}
+	if jsonOutput {
+		out := map[string]interface{}{
+			"valid":    result.Valid && (quick || dockerfileExists),
+			"errors":   result.Errors,
+			"warnings": result.Warnings,
 		}
-
-		if jsonOutput {
-			out := map[string]interface{}{
-				"valid":               result.Valid && dockerfileExists,
-				"errors":              result.Errors,
-				"warnings":            result.Warnings,
-				"dockerfile_exists":   dockerfileExists,
-			}
-			return ui.PrintJSON(out)
+		if !quick {
+			out["dockerfile_exists"] = dockerfileExists
 		}
+		return ui.PrintJSON(out)
+	}
 
-		fmt.Println(ui.Bold.Render("Checking project"))
+	fmt.Println(ui.Bold.Render("Checking project"))
+	fmt.Println()
+
+	for _, e := range result.Errors {
+		fmt.Println(ui.Error.Render("  FAIL") + "  " + e)
+	}
+	for _, w := range result.Warnings {
+		fmt.Println(ui.Warning.Render("  WARN") + "  " + w)
+	}
+
+	if !result.Valid {
 		fmt.Println()
+		ui.PrintError(fmt.Sprintf("%d error(s) found", len(result.Errors)))
+		return fmt.Errorf("check failed")
+	}
 
-		for _, e := range result.Errors {
-			fmt.Println(ui.Error.Render("  FAIL") + "  " + e)
-		}
-		for _, w := range result.Warnings {
-			fmt.Println(ui.Warning.Render("  WARN") + "  " + w)
-		}
-
-		if !result.Valid {
-			fmt.Println()
-			ui.PrintError(fmt.Sprintf("%d error(s) found", len(result.Errors)))
-			return fmt.Errorf("check failed")
-		}
-
-		ui.PrintSuccess("kyper.yml is valid")
+	ui.PrintSuccess("kyper.yml is valid")
+	if !quick {
 		if dockerfileExists {
 			ui.PrintSuccess("Dockerfile exists")
+		} else {
+			fmt.Println()
+			ui.PrintError("Dockerfile not found: " + kf.Docker.Dockerfile)
+			return fmt.Errorf("check failed")
 		}
-		fmt.Println()
-		ui.PrintSuccess("All checks passed")
-		return nil
-	},
+	}
+	fmt.Println()
+	ui.PrintSuccess("All checks passed")
+	return nil
 }

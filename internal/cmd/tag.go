@@ -16,11 +16,12 @@ import (
 var bumpFlag string
 
 var tagCmd = &cobra.Command{
-	Use:   "tag",
-	Short: "Bump the version in kyper.yml",
-	Long:  "Interactively select a patch, minor, or major version bump and write it to kyper.yml.",
-	Args:  cobra.NoArgs,
-	RunE:  runTag,
+	Use:     "tag",
+	Short:   "Bump the version in kyper.yml",
+	Long:    "Interactively select a patch, minor, or major version bump and write it to kyper.yml.",
+	GroupID: "project",
+	Args:    cobra.NoArgs,
+	RunE:    runTag,
 }
 
 func init() {

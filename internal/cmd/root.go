@@ -14,7 +14,7 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "kyper",
-	Short: "Kyper CLI — push, validate, and manage apps on the Kyper marketplace",
+	Short: "Kyper CLI — push, check, and manage apps on the Kyper marketplace",
 	Long:  "The official CLI for the Kyper marketplace. Build, deploy, and manage your apps.",
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -25,6 +25,12 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&hostFlag, "host", "", "Override API host URL")
 	rootCmd.Version = fmt.Sprintf("%s (%s, %s)", version.Version, version.Commit, version.Date)
 	rootCmd.SetVersionTemplate("kyper {{.Version}}\n")
+
+	rootCmd.AddGroup(
+		&cobra.Group{ID: "auth", Title: "Authentication:"},
+		&cobra.Group{ID: "project", Title: "Project:"},
+		&cobra.Group{ID: "deploy", Title: "Deploy:"},
+	)
 }
 
 func Execute() error {

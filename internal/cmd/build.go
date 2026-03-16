@@ -25,9 +25,10 @@ func init() {
 }
 
 var buildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "Build the Docker image locally (with optional security scan)",
-	Args:  cobra.NoArgs,
+	Use:     "build",
+	Short:   "Build the Docker image locally (with optional security scan)",
+	GroupID: "project",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// 0. Flag validation
 		if buildFixOnly && !buildScan {
@@ -54,7 +55,7 @@ var buildCmd = &cobra.Command{
 			for _, e := range result.Errors {
 				ui.PrintError(e)
 			}
-			return fmt.Errorf("kyper.yml validation failed — run 'kyper validate' for details")
+			return fmt.Errorf("kyper.yml validation failed — run 'kyper check' for details")
 		}
 		for _, w := range result.Warnings {
 			ui.PrintWarning(w)

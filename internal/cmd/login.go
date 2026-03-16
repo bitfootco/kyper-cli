@@ -15,9 +15,10 @@ func init() {
 }
 
 var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Authenticate via browser (device auth flow)",
-	Args:  cobra.NoArgs,
+	Use:     "login",
+	Short:   "Authenticate via browser (device auth flow)",
+	GroupID: "auth",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient(baseURL(), "")
 

@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -11,31 +9,11 @@ func init() {
 }
 
 var logsCmd = &cobra.Command{
-	Use:   "logs",
-	Short: "Stream build logs for the latest version",
-	Args:  cobra.NoArgs,
+	Use:        "logs",
+	Short:      "Stream build logs for the latest version",
+	Deprecated: "use 'kyper push logs' instead",
+	Args:       cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_, client, err := requireAuth()
-		if err != nil {
-			return err
-		}
-
-		kf, _, err := loadKyperYML()
-		if err != nil {
-			return err
-		}
-
-		slug := slugFromTitle(kf.Name)
-		status, err := client.GetAppStatus(slug)
-		if err != nil {
-			return fmt.Errorf("fetching status: %w", err)
-		}
-
-		if status.LatestVersion == nil {
-			return fmt.Errorf("no versions found — run 'kyper push' first")
-		}
-
-		_, err = tailLog(client, status.LatestVersion.ID, 0)
-		return err
+		return runPushLogs()
 	},
 }
