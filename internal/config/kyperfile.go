@@ -11,7 +11,7 @@ import (
 type KyperFile struct {
 	Name        string            `yaml:"name"`
 	Version     string            `yaml:"version"`
-	Description string            `yaml:"description"`
+	Description string            `yaml:"description,omitempty"`
 	Tagline     string            `yaml:"tagline,omitempty"`
 	Category    string            `yaml:"category"`
 	Docker      DockerConfig      `yaml:"docker"`

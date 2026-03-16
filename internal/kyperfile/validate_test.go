@@ -11,10 +11,9 @@ func floatPtr(f float64) *float64 { return &f }
 
 func validKyperFile() *config.KyperFile {
 	return &config.KyperFile{
-		Name:        "My App",
-		Version:     "1.0.0",
-		Description: "A valid test app",
-		Category:    "productivity",
+		Name:     "My App",
+		Version:  "1.0.0",
+		Category: "productivity",
 		Docker: config.DockerConfig{
 			Dockerfile: "./Dockerfile",
 		},
@@ -148,18 +147,13 @@ func TestAllValidCategories(t *testing.T) {
 	}
 }
 
-func TestDescriptionRequired(t *testing.T) {
+func TestDescriptionIgnored(t *testing.T) {
 	kf := validKyperFile()
-	kf.Description = ""
+	kf.Description = "This should be silently ignored"
 	r := Validate(kf, false)
-	assertContainsError(t, r, "description is required")
-}
-
-func TestDescriptionTooLong(t *testing.T) {
-	kf := validKyperFile()
-	kf.Description = strings.Repeat("a", 501)
-	r := Validate(kf, false)
-	assertContainsError(t, r, "500 characters")
+	if !r.Valid {
+		t.Errorf("description should be ignored, got errors: %v", r.Errors)
+	}
 }
 
 func TestTaglineTooLong(t *testing.T) {

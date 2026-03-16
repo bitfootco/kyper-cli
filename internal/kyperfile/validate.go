@@ -88,7 +88,6 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validateName(kf, r)
 	validateVersion(kf, r)
 	validateCategory(kf, r)
-	validateDescription(kf, r)
 	validateTagline(kf, r)
 	validateDocker(kf, r, checkFileExists)
 	validateProcesses(kf, r)
@@ -146,16 +145,6 @@ func validateCategory(kf *config.KyperFile, r *ValidationResult) {
 		}
 	}
 	addError(r, fmt.Sprintf("category must be one of: %s", strings.Join(Categories, ", ")))
-}
-
-func validateDescription(kf *config.KyperFile, r *ValidationResult) {
-	if kf.Description == "" {
-		addError(r, "description is required")
-		return
-	}
-	if len(kf.Description) > 500 {
-		addError(r, "description must be 500 characters or fewer")
-	}
 }
 
 func validateTagline(kf *config.KyperFile, r *ValidationResult) {

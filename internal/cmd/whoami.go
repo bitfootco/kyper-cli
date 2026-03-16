@@ -12,9 +12,10 @@ func init() {
 }
 
 var whoamiCmd = &cobra.Command{
-	Use:   "whoami",
-	Short: "Show authenticated user",
-	Args:  cobra.NoArgs,
+	Use:     "whoami",
+	Short:   "Show authenticated user",
+	GroupID: "auth",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		_, client, err := requireAuth()
 		if err != nil {
