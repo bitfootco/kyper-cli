@@ -96,6 +96,7 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validatePricing(kf, r)
 	validateEnv(kf, r)
 	validateIntegrations(kf, r)
+	validateHooks(kf, r)
 	checkDBWithoutHook(kf, r)
 	validateSecurity(kf, r)
 
@@ -290,6 +291,26 @@ func validateIntegrations(kf *config.KyperFile, r *ValidationResult) {
 	}
 }
 
+// validateHooks rejects unknown keys under `hooks:`. Without this check, a
+// typo like `hooks.releaes` would silently no-op the hook, and the failure
+// mode is the exact one hooks.release exists to prevent (an app crashing on
+// first boot waiting for a schema that no migration ever ran). The known-key
+// list mirrors the Rails validator at app/services/kyper_file/validator.rb.
+func validateHooks(kf *config.KyperFile, r *ValidationResult) {
+	if len(kf.Hooks.Unknown) == 0 {
+		return
+	}
+
+	keys := make([]string, 0, len(kf.Hooks.Unknown))
+	for k := range kf.Hooks.Unknown {
+		keys = append(keys, fmt.Sprintf("%q", k))
+	}
+	addError(r, fmt.Sprintf(
+		"hooks: unknown key(s) %s — allowed keys: release, on_deploy, on_update",
+		strings.Join(keys, ", "),
+	))
+}
+
 func checkDBWithoutHook(kf *config.KyperFile, r *ValidationResult) {
 	hasDB := false
 	for _, dep := range kf.Deps {
@@ -298,8 +319,8 @@ func checkDBWithoutHook(kf *config.KyperFile, r *ValidationResult) {
 			break
 		}
 	}
-	if hasDB && kf.Hooks.OnDeploy == "" {
-		addWarning(r, "database dependency present without hooks.on_deploy — consider adding a migration hook")
+	if hasDB && kf.Hooks.Release == "" {
+		addWarning(r, "database dependency present without hooks.release — apps with a database usually need a migration command (e.g. 'bundle exec rails db:prepare' or 'prisma migrate deploy'). hooks.release runs after the DB is ready and before your app starts, on every cold deploy. Do NOT use hooks.on_deploy for migrations — it runs after pods are healthy, so it can't help an app that crashes on first boot.")
 	}
 }
 

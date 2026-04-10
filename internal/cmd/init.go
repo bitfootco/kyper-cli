@@ -148,9 +148,9 @@ var initCmd = &cobra.Command{
 			}
 		}
 
-		// Step 5: Hooks
+		// Step 5: Release hook (migrations)
 		stackNames := detect.StackNames(stacks)
-		var onDeploy string
+		var release string
 		hasDB := false
 		for _, d := range selectedDeps {
 			if d.Name == "postgres" || d.Name == "mysql" {
@@ -161,15 +161,15 @@ var initCmd = &cobra.Command{
 		if hasDB {
 			suggestion := suggestHook(stackNames)
 			if err := huh.NewInput().
-				Title("Deploy hook").
-				Description("Run after first deployment (e.g., database migration)").
-				Value(&onDeploy).
+				Title("Release hook").
+				Description("Runs after the database is ready and BEFORE your app starts (e.g. migrations). Stored as hooks.release in kyper.yml.").
+				Value(&release).
 				Placeholder(suggestion).
 				Run(); err != nil {
 				return err
 			}
-			if onDeploy == "" {
-				onDeploy = suggestion
+			if release == "" {
+				release = suggestion
 			}
 		}
 
@@ -215,7 +215,7 @@ var initCmd = &cobra.Command{
 
 		// Build KyperFile struct
 		kf := buildKyperFile(title, tagline, category, processes,
-			selectedDeps, onDeploy, healthPath, oneTimeStr, subStr, memoryTier)
+			selectedDeps, release, healthPath, oneTimeStr, subStr, memoryTier)
 
 		// Step 9: Preview
 		yamlBytes, err := yaml.Marshal(kf)
@@ -290,7 +290,7 @@ var initCmd = &cobra.Command{
 
 func buildKyperFile(title, tagline, category string,
 	processes map[string]string, deps []config.DepEntry,
-	onDeploy, healthPath, oneTimeStr, subStr, memoryTier string) *config.KyperFile {
+	release, healthPath, oneTimeStr, subStr, memoryTier string) *config.KyperFile {
 
 	kf := &config.KyperFile{
 		Name:     title,
@@ -312,8 +312,8 @@ func buildKyperFile(title, tagline, category string,
 		kf.Tagline = tagline
 	}
 
-	if onDeploy != "" {
-		kf.Hooks.OnDeploy = onDeploy
+	if release != "" {
+		kf.Hooks.Release = release
 	}
 
 	if p := parsePrice(oneTimeStr); p != nil {
@@ -367,13 +367,18 @@ func parseInt(s string) int {
 	return n
 }
 
+// suggestHook returns a framework-specific release hook command for the
+// detected stack. These all need to be idempotent against a possibly-empty
+// database, because release hooks run on every cold-start (every `kyper test`
+// deploy + every consumer subscription's first provision).
 func suggestHook(stacks []string) string {
 	for _, s := range stacks {
 		switch s {
 		case "rails":
-			return "bundle exec rails db:migrate"
+			// db:prepare = create-if-missing then migrate; safe on cold-start.
+			return "bundle exec rails db:prepare"
 		case "django":
-			return "python manage.py migrate"
+			return "python manage.py migrate --noinput"
 		case "prisma":
 			return "npx prisma migrate deploy"
 		case "laravel":

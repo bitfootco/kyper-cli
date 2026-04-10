@@ -39,7 +39,7 @@ func TestCreateTestDeploy(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(TestDeployResponse{
 			VersionID: 99,
 			Message:   "Test build queued.",
-			Warnings:  []string{"no on_deploy hook set"},
+			Warnings:  []string{"no hooks.release set"},
 		})
 	}))
 	defer srv.Close()
@@ -60,7 +60,7 @@ func TestCreateTestDeploy(t *testing.T) {
 	if resp.Message != "Test build queued." {
 		t.Errorf("unexpected message: %q", resp.Message)
 	}
-	if len(resp.Warnings) != 1 || resp.Warnings[0] != "no on_deploy hook set" {
+	if len(resp.Warnings) != 1 || resp.Warnings[0] != "no hooks.release set" {
 		t.Errorf("unexpected warnings: %v", resp.Warnings)
 	}
 	if gotKyperYml != "name: my-app\n" {

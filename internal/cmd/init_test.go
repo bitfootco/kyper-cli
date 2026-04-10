@@ -7,8 +7,11 @@ func TestSuggestHook(t *testing.T) {
 		stacks []string
 		want   string
 	}{
-		{[]string{"rails"}, "bundle exec rails db:migrate"},
-		{[]string{"django"}, "python manage.py migrate"},
+		// suggestHook returns idempotent release-hook commands suitable for
+		// cold-start (every kyper test deploy + every subscription's first
+		// provision starts with an empty database).
+		{[]string{"rails"}, "bundle exec rails db:prepare"},
+		{[]string{"django"}, "python manage.py migrate --noinput"},
 		{[]string{"prisma", "next"}, "npx prisma migrate deploy"},
 		{[]string{"laravel"}, "php artisan migrate --force"},
 		{[]string{"go"}, ""},
