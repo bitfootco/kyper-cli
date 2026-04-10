@@ -120,7 +120,7 @@ The wizard:
 1. **Auto-detects** your stack (Rails, Django, Laravel, Go, Next.js, Express, and more)
 2. **Auto-detects** processes (from `Procfile`, `Dockerfile`, framework conventions)
 3. **Auto-detects** dependencies (PostgreSQL, Redis, MySQL, S3, etc. from config files and lockfiles)
-4. **Suggests** deploy hooks based on your stack (e.g., `bundle exec rails db:migrate` for Rails)
+4. **Suggests** a release hook based on your stack (e.g., `bundle exec rails db:prepare` for Rails) — runs migrations before your app starts
 5. **Suggests** health check paths (e.g., `/up` for Rails, `/health/` for Django)
 6. Walks you through **pricing**, **category**, and **resource tier** selection
 7. **Previews** the generated YAML and asks for confirmation
@@ -146,7 +146,7 @@ If `kyper.yml` already exists, the wizard asks before overwriting.
 
 #### `kyper validate`
 
-Validate `kyper.yml` locally without uploading anything. Catches errors (missing required fields, invalid values) and warnings (e.g., database dependency without a deploy hook).
+Validate `kyper.yml` locally without uploading anything. Catches errors (missing required fields, invalid values) and warnings (e.g., database dependency without a release hook).
 
 ```bash
 kyper validate
@@ -164,14 +164,14 @@ kyper validate
 # Validating kyper.yml
 #
 #   FAIL  processes must include a 'web' key
-#   WARN  deps includes 'postgres' but no on_deploy hook is set
+#   WARN  deps includes 'postgres' but no release hook is set
 #
 # 1 error(s), 1 warning(s)
 ```
 
 ```bash
 kyper validate --json
-# {"valid":false,"errors":["processes must include a 'web' key"],"warnings":["deps includes 'postgres' but no on_deploy hook is set"]}
+# {"valid":false,"errors":["processes must include a 'web' key"],"warnings":["deps includes 'postgres' but no release hook is set"]}
 ```
 
 #### `kyper check`
@@ -431,8 +431,8 @@ env:
   - STRIPE_SECRET_KEY
 
 hooks:
-  on_deploy: bundle exec rails db:migrate
-  on_update: bundle exec rails db:migrate
+  release: bundle exec rails db:prepare    # runs BEFORE app pods start (migrations)
+  on_deploy: bundle exec rails cache:warmup # runs AFTER pods are healthy
 
 healthcheck:
   path: /up
@@ -462,8 +462,9 @@ For the full field-by-field reference, see the [kyper.yml Reference](https://kyp
 | `processes.web` | Yes | Command to start the web server |
 | `deps` | No | Infrastructure dependencies (`postgres`, `mysql`, `redis`, `elasticsearch`, `opensearch`, `s3`) |
 | `env` | No | Required environment variable names (consumers must set these before deploy) |
-| `hooks.on_deploy` | No | Run after first deployment (e.g., migrations) |
-| `hooks.on_update` | No | Run after updates (e.g., migrations) |
+| `hooks.release` | No | Runs as a one-shot Job **before** app pods start, after deps are ready. Use for migrations and one-time setup (`rails db:prepare`, `prisma migrate deploy`, etc.) |
+| `hooks.on_deploy` | No | Runs **after** pods are healthy on a fresh deploy. Use for cache warmup, post-deploy notifications, etc. |
+| `hooks.on_update` | No | Runs **after** pods are healthy on a version update. Same execution model as `on_deploy`; auto-rollback on failure. |
 | `pricing.one_time` | No* | One-time purchase price in USD |
 | `pricing.subscription` | No* | Monthly subscription price in USD |
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/bitfootco/kyper-cli/internal/config"
+	"gopkg.in/yaml.v3"
 )
 
 func floatPtr(f float64) *float64 { return &f }
@@ -397,17 +398,78 @@ func TestDBWithoutHookWarning(t *testing.T) {
 	kf := validKyperFile()
 	kf.Deps = []config.DepEntry{{Name: "postgres"}}
 	r := Validate(kf, false)
-	assertContainsWarning(t, r, "hooks.on_deploy")
+	assertContainsWarning(t, r, "hooks.release")
 }
 
-func TestDBWithHookNoWarning(t *testing.T) {
+func TestDBWithReleaseHookNoWarning(t *testing.T) {
+	kf := validKyperFile()
+	kf.Deps = []config.DepEntry{{Name: "postgres"}}
+	kf.Hooks.Release = "bundle exec rails db:prepare"
+	r := Validate(kf, false)
+	for _, w := range r.Warnings {
+		if strings.Contains(w, "hooks.release") {
+			t.Error("should not warn about hooks.release when it is set")
+		}
+	}
+}
+
+// hooks.on_deploy is not a substitute for hooks.release for migrations on a
+// fresh DB — the warning should still fire if only on_deploy is set.
+func TestDBWithOnlyOnDeployStillWarns(t *testing.T) {
 	kf := validKyperFile()
 	kf.Deps = []config.DepEntry{{Name: "postgres"}}
 	kf.Hooks.OnDeploy = "bundle exec rails db:migrate"
 	r := Validate(kf, false)
-	for _, w := range r.Warnings {
-		if strings.Contains(w, "hooks.on_deploy") {
-			t.Error("should not warn about hooks.on_deploy when set")
+	assertContainsWarning(t, r, "hooks.release")
+}
+
+func TestUnknownHookKeyRejected(t *testing.T) {
+	kf := validKyperFile()
+	kf.Hooks.Unknown = map[string]interface{}{"releaes": "prisma migrate deploy"}
+	r := Validate(kf, false)
+	if r.Valid {
+		t.Error("expected validation to fail for unknown hook key")
+	}
+	found := false
+	for _, e := range r.Errors {
+		if strings.Contains(e, "releaes") && strings.Contains(e, "unknown key") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected an unknown-key error mentioning %q, got errors: %v", "releaes", r.Errors)
+	}
+}
+
+func TestKnownHooksDoNotPopulateUnknown(t *testing.T) {
+	// Round-trip a YAML with all three known hooks set, confirming the
+	// Unknown map stays empty (and the validator doesn't trip).
+	yamlStr := `
+name: test
+version: 1.0.0
+category: productivity
+docker:
+  dockerfile: ./Dockerfile
+processes:
+  web: bin/server
+pricing:
+  one_time: 5.0
+hooks:
+  release: rails db:prepare
+  on_deploy: rails cache:warmup
+  on_update: rails cache:warmup
+`
+	var kf config.KyperFile
+	if err := yaml.Unmarshal([]byte(yamlStr), &kf); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if len(kf.Hooks.Unknown) != 0 {
+		t.Errorf("expected Unknown map to be empty, got %v", kf.Hooks.Unknown)
+	}
+	r := Validate(&kf, false)
+	for _, e := range r.Errors {
+		if strings.Contains(e, "unknown key") {
+			t.Errorf("did not expect an unknown-key error, got: %s", e)
 		}
 	}
 }

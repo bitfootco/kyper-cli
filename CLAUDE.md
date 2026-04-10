@@ -254,8 +254,9 @@ env:                             # Optional. Array of required env var key names
   - API_KEY
 
 hooks:
-  on_deploy: bundle exec rails db:migrate    # Optional. Runs after first deployment.
-  on_update: bundle exec rails db:migrate    # Optional. Runs on version update.
+  release:   bundle exec rails db:prepare    # Optional. Runs as a one-shot K8s Job AFTER deps are ready and BEFORE app pods start. Use for migrations.
+  on_deploy: bundle exec rails cache:warmup  # Optional. Runs INSIDE a healthy web pod after first deployment. Use for cache warmup, post-deploy notifications, etc. NOT for migrations.
+  on_update: bundle exec rails cache:warmup  # Optional. Same execution model as on_deploy, but on version update. Auto-rollback on failure.
 
 healthcheck:
   path: /up                      # Optional. Default /up. Must start with /.
@@ -286,9 +287,9 @@ Interactive wizard using Huh forms. Flow:
 2. Auto-detect — scan project files, display detected stack/processes/deps with source labels
 3. Processes — confirm detected or enter manually. web is required.
 4. Dependencies — multi-select from detected + manual add. Suggest versions from lockfiles.
-5. Hooks — if DB dep present, prompt for deploy hook. Suggest based on stack:
-  - Rails: bundle exec rails db:migrate
-  - Django: python manage.py migrate
+5. Release hook — if DB dep present, prompt for release hook (stored as hooks.release in kyper.yml). Suggest based on stack:
+  - Rails: bundle exec rails db:prepare    (db:prepare is idempotent on cold-start; create-if-missing then migrate)
+  - Django: python manage.py migrate --noinput
   - Prisma: npx prisma migrate deploy
   - Laravel: php artisan migrate --force
 6. Health check — path input with stack default (Rails→/up, Django→/health/, Node→/health)
@@ -316,11 +317,11 @@ Validation rules:
 - docker.dockerfile: present, no docker.image, referenced file exists
 - processes: is a map, has web key
 - deps: each is known dep, version in allow-list if pinned, storage_gb 1-500 if set
-- hooks: on_deploy/on_update must be strings if present
+- hooks: release/on_deploy/on_update must be strings if present
 - healthcheck.path: starts with / if present
 - healthcheck.interval: 10-300 if present
 - healthcheck.timeout: positive integer if present
-- Warning (not error): DB dep present without hooks.on_deploy
+- Warning (not error): DB dep present without hooks.release (hooks.on_deploy is NOT a substitute — it runs after pods are healthy and can't help an app that crashes on first boot waiting for its schema)
 
 --json mode: {"valid": bool, "errors": [...], "warnings": [...]}
 

@@ -42,8 +42,21 @@ type ResourceConfig struct {
 }
 
 type HooksConfig struct {
+	// Release runs as a one-shot K8s Job after deps (postgres, redis, etc.)
+	// are ready and BEFORE app pods are created. Use this for migrations and
+	// any other setup that must complete before the web process starts.
+	Release string `yaml:"release,omitempty"`
+	// OnDeploy runs INSIDE a healthy web pod after pods are ready, on a fresh
+	// deployment. Use for cache warmup, post-deploy notifications, etc. Do
+	// NOT use for migrations — see Release.
 	OnDeploy string `yaml:"on_deploy,omitempty"`
+	// OnUpdate runs INSIDE a healthy web pod after pods are ready, on a
+	// version update. Same execution model as OnDeploy.
 	OnUpdate string `yaml:"on_update,omitempty"`
+	// Unknown captures any hook keys NOT in the known set (release, on_deploy,
+	// on_update). The validator surfaces these as errors so a typo like
+	// `hooks.releaes` doesn't silently no-op. Populated via yaml inline tag.
+	Unknown map[string]interface{} `yaml:",inline"`
 }
 
 type HealthcheckConfig struct {
