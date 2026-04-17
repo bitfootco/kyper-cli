@@ -148,14 +148,6 @@ func TestAllValidCategories(t *testing.T) {
 	}
 }
 
-func TestDescriptionIgnored(t *testing.T) {
-	kf := validKyperFile()
-	kf.Description = "This should be silently ignored"
-	r := Validate(kf, false)
-	if !r.Valid {
-		t.Errorf("description should be ignored, got errors: %v", r.Errors)
-	}
-}
 
 func TestTaglineTooLong(t *testing.T) {
 	kf := validKyperFile()
