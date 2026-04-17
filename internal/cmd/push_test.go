@@ -58,9 +58,8 @@ func TestHumanizeBytes(t *testing.T) {
 func TestBuildAppParams(t *testing.T) {
 	price := 29.99
 	kf := &config.KyperFile{
-		Name:        "My App",
-		Description: "A test app",
-		Category:    "productivity",
+		Name:     "My App",
+		Category: "productivity",
 		Tagline:     "Short pitch",
 		Pricing: config.PricingConfig{
 			OneTime: &price,
