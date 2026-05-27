@@ -121,7 +121,11 @@ func parseVersion(v string) (major, minor, patch int, err error) {
 }
 
 func replaceVersion(raw []byte, oldVersion, newVersion string) ([]byte, error) {
-	pattern := fmt.Sprintf(`(?m)^version:\s*%s\s*$`, regexp.QuoteMeta(oldVersion))
+	// Match unquoted (version: 1.0.0), double-quoted (version: "1.0.0"), and
+	// single-quoted (version: '1.0.0') forms. YAML parsers strip quotes before
+	// returning the value, so oldVersion is always the bare string regardless of
+	// how it was written in the file.
+	pattern := fmt.Sprintf(`(?m)^version:\s*["']?%s["']?\s*$`, regexp.QuoteMeta(oldVersion))
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err
@@ -129,5 +133,6 @@ func replaceVersion(raw []byte, oldVersion, newVersion string) ([]byte, error) {
 	if !re.Match(raw) {
 		return nil, fmt.Errorf("version %q not found in kyper.yml", oldVersion)
 	}
+	// Always write the unquoted form — quotes are unnecessary for semver strings.
 	return re.ReplaceAllLiteral(raw, []byte("version: "+newVersion)), nil
 }

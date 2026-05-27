@@ -68,7 +68,6 @@ var DBDeps = map[string]bool{
 }
 
 var semverRegexp = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
-var nameHasAlphanumRegexp = regexp.MustCompile(`[a-zA-Z0-9]`)
 var nameSlugRegexp = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$`)
 var cveIDRegexp = regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`)
 
