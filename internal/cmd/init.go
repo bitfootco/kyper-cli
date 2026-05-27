@@ -62,10 +62,10 @@ var initCmd = &cobra.Command{
 		err = huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
-					Title("App title").
-					Description("Human-readable display name (e.g. \"My App\"). Slug is auto-derived.").
+					Title("App name").
+					Description("Slug format: lowercase letters, digits, and hyphens only (e.g. \"my-app\", \"dashi\").").
 					Value(&title).
-					Placeholder(defaultTitle),
+					Placeholder(slugFromTitle(defaultTitle)),
 				huh.NewSelect[string]().
 					Title("Category").
 					Options(categoryOptions()...).
@@ -84,7 +84,9 @@ var initCmd = &cobra.Command{
 		}
 
 		if title == "" {
-			title = defaultTitle
+			title = slugFromTitle(defaultTitle)
+		} else {
+			title = slugFromTitle(title)
 		}
 
 		// Step 3: Processes

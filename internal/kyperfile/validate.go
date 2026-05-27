@@ -68,7 +68,7 @@ var DBDeps = map[string]bool{
 }
 
 var semverRegexp = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
-var nameHasAlphanumRegexp = regexp.MustCompile(`[a-zA-Z0-9]`)
+var nameSlugRegexp = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$`)
 var cveIDRegexp = regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`)
 
 const maxIgnoredCVEs = 25
@@ -120,8 +120,8 @@ func validateName(kf *config.KyperFile, r *ValidationResult) {
 	if len(kf.Name) > 100 {
 		addError(r, "name must be 100 characters or fewer")
 	}
-	if !nameHasAlphanumRegexp.MatchString(kf.Name) {
-		addError(r, "name must contain at least one letter or digit")
+	if !nameSlugRegexp.MatchString(kf.Name) {
+		addError(r, "name must be a valid slug: lowercase letters, digits, and hyphens only, no leading or trailing hyphens (e.g. \"my-app\" or \"dashi\")")
 	}
 }
 

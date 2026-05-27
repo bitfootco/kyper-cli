@@ -69,6 +69,20 @@ func TestReplaceVersion(t *testing.T) {
 			wantOutput: "# comment\nversion: 0.1.0\n# another\n",
 		},
 		{
+			name:       "quoted version string",
+			input:      "name: my-app\nversion: \"1.0.0\"\ncategory: productivity\n",
+			oldVer:     "1.0.0",
+			newVer:     "1.0.1",
+			wantOutput: "name: my-app\nversion: 1.0.1\ncategory: productivity\n",
+		},
+		{
+			name:       "single-quoted version string",
+			input:      "name: my-app\nversion: '2.3.4'\ncategory: productivity\n",
+			oldVer:     "2.3.4",
+			newVer:     "2.4.0",
+			wantOutput: "name: my-app\nversion: 2.4.0\ncategory: productivity\n",
+		},
+		{
 			name:    "version not found returns error",
 			input:   "version: 2.0.0\n",
 			oldVer:  "1.0.0",
