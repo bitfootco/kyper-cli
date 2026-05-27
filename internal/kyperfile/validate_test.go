@@ -12,7 +12,7 @@ func floatPtr(f float64) *float64 { return &f }
 
 func validKyperFile() *config.KyperFile {
 	return &config.KyperFile{
-		Name:     "My App",
+		Name:     "my-app",
 		Version:  "1.0.0",
 		Category: "productivity",
 		Docker: config.DockerConfig{
@@ -47,13 +47,13 @@ func TestNameRequired(t *testing.T) {
 
 func TestNameValidFormats(t *testing.T) {
 	tests := []string{
-		"My App",
-		"MY-APP",
 		"my-app",
-		"-leading-hyphen",
-		"trailing-hyphen-",
-		"App 2.0",
-		"café",
+		"dashi",
+		"my-cool-app",
+		"app2",
+		"my-app-2",
+		"a",
+		"x1",
 	}
 	for _, name := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -67,18 +67,31 @@ func TestNameValidFormats(t *testing.T) {
 	}
 }
 
-func TestNameNoAlphanumeric(t *testing.T) {
+func TestNameInvalidFormats(t *testing.T) {
 	tests := []string{
-		"!!!",
-		"---",
-		"   ",
+		"My App",        // uppercase + space
+		"Dashi",         // uppercase
+		"MY-APP",        // uppercase
+		"-leading",      // leading hyphen
+		"trailing-",     // trailing hyphen
+		"App 2.0",       // uppercase + space + dot
+		"café",          // non-ASCII
+		"my_app",        // underscore
+		"my app",        // space
+		"my.app",        // dot
+		"!!!",           // symbols only
+		"---",           // hyphens only
+		"   ",           // whitespace only
 	}
 	for _, name := range tests {
 		t.Run(name, func(t *testing.T) {
 			kf := validKyperFile()
 			kf.Name = name
 			r := Validate(kf, false)
-			assertContainsError(t, r, "at least one letter or digit")
+			if r.Valid {
+				t.Errorf("name %q should be invalid", name)
+			}
+			assertContainsError(t, r, "valid slug")
 		})
 	}
 }
