@@ -56,7 +56,7 @@ func DetectStorage(dir string) []StorageResult {
 		return results
 	}
 
-	filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			if d != nil && d.IsDir() && ignoredDir(d.Name()) && path != dir {
 				return filepath.SkipDir
@@ -233,7 +233,7 @@ func djangoSQLitePath(dir string) string {
 
 func djangoSettingsFiles(dir string) []string {
 	var paths []string
-	filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			if d != nil && d.IsDir() && ignoredDir(d.Name()) && path != dir {
 				return filepath.SkipDir
