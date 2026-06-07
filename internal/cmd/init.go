@@ -181,7 +181,7 @@ var initCmd = &cobra.Command{
 
 		// Steps 6–8: Health check, pricing, resources — one form to avoid terminal artifacts
 		defaultPath := defaultHealthPath(stackNames)
-		var healthPath, oneTimeStr, subStr, memoryTier string
+		var healthPath, oneTimeStr, subStr, resourceTier string
 		err = huh.NewForm(
 			huh.NewGroup(
 				huh.NewInput().
@@ -205,11 +205,12 @@ var initCmd = &cobra.Command{
 					Title("Resource tier").
 					Description("Minimum resources allocated to your app").
 					Options(
-						huh.NewOption("Starter — 512 MB RAM, 0.25 vCPU ($10/mo)", "512"),
-						huh.NewOption("Standard — 1 GB RAM, 0.5 vCPU ($16/mo)", "1024"),
-						huh.NewOption("Pro — 2 GB RAM, 1 vCPU ($25/mo)", "2048"),
+						huh.NewOption("Hobby — 512 MB RAM, 0.1 vCPU, 1 GB storage ($5/mo)", "hobby"),
+						huh.NewOption("Basic — 512 MB RAM, 0.25 vCPU, 1 GB storage ($10/mo)", "starter"),
+						huh.NewOption("Pro — 1 GB RAM, 0.5 vCPU, 5 GB storage ($15/mo)", "standard"),
+						huh.NewOption("Turbo — 2 GB RAM, 1 vCPU, 10 GB storage ($25/mo)", "pro"),
 					).
-					Value(&memoryTier),
+					Value(&resourceTier),
 			),
 		).Run()
 		if err != nil {
@@ -225,7 +226,7 @@ var initCmd = &cobra.Command{
 			storageMounts = append(storageMounts, config.StorageMount{Path: storage.Path})
 		}
 		kf := buildKyperFile(title, tagline, category, processes,
-			selectedDeps, storageMounts, release, healthPath, oneTimeStr, subStr, memoryTier)
+			selectedDeps, storageMounts, release, healthPath, oneTimeStr, subStr, resourceTier)
 
 		// Step 9: Preview
 		yamlBytes, err := yaml.Marshal(kf)
@@ -300,7 +301,7 @@ var initCmd = &cobra.Command{
 
 func buildKyperFile(title, tagline, category string,
 	processes map[string]string, deps []config.DepEntry, storageMounts []config.StorageMount,
-	release, healthPath, oneTimeStr, subStr, memoryTier string) *config.KyperFile {
+	release, healthPath, oneTimeStr, subStr, resourceTier string) *config.KyperFile {
 
 	kf := &config.KyperFile{
 		Name:     title,
@@ -337,17 +338,36 @@ func buildKyperFile(title, tagline, category string,
 		kf.Pricing.Subscription = p
 	}
 
-	if mem := parseInt(memoryTier); mem > 0 {
-		kf.Resources.MinMemoryMB = mem
-		switch mem {
-		case 2048:
-			kf.Resources.MinCPU = 2
-		default:
-			kf.Resources.MinCPU = 1
-		}
-	}
+	mem, cpu := resourceTierHints(resourceTier)
+	kf.Resources.MinMemoryMB = mem
+	kf.Resources.MinCPU = cpu
 
 	return kf
+}
+
+func resourceTierHints(tier string) (int, float64) {
+	switch tier {
+	case "starter":
+		return 512, 0.25
+	case "standard":
+		return 1024, 0.5
+	case "pro":
+		return 2048, 1
+	case "hobby", "":
+		return 512, 0.1
+	default:
+		// Backward compatibility for callers/tests using the old memory-tier values.
+		switch parseInt(tier) {
+		case 1024:
+			return 1024, 0.5
+		case 2048:
+			return 2048, 1
+		case 512:
+			return 512, 0.25
+		default:
+			return 512, 0.1
+		}
+	}
 }
 
 // toHumanTitle converts a filesystem name like "my_app" or "my-project" to "My App" / "My Project".

@@ -122,7 +122,7 @@ The wizard:
 3. **Auto-detects** dependencies (PostgreSQL, Redis, MySQL, S3, etc. from config files and lockfiles)
 4. **Suggests** a release hook based on your stack (e.g., `bundle exec rails db:prepare` for Rails) — runs migrations before your app starts
 5. **Suggests** health check paths (e.g., `/up` for Rails, `/health/` for Django)
-6. Walks you through **pricing**, **category**, and **resource tier** selection
+6. Walks you through **pricing**, **category**, and **resource tier** selection (Hobby, Basic, Pro, Turbo)
 7. **Previews** the generated YAML and asks for confirmation
 
 ```bash
@@ -253,7 +253,7 @@ kyper tag --bump minor --json
 
 #### `kyper test`
 
-Build and ephemerally deploy your app on Kyper's real K8s infrastructure. Useful for validating your app works end-to-end in a production-like environment — including declared deps (Postgres, Redis, etc.) — before submitting for review. The deployment auto-destroys after 1 hour and uses Starter-tier resources (512 MB RAM, 0.25 vCPU).
+Build and ephemerally deploy your app on Kyper's real K8s infrastructure. Useful for validating your app works end-to-end in a production-like environment — including declared deps (Postgres, Redis, etc.) — before submitting for review. The deployment auto-destroys after 1 hour and uses Hobby-tier resources (512 MB RAM, 0.1 vCPU).
 
 ```bash
 kyper test
@@ -450,8 +450,8 @@ pricing:
   subscription: 12
 
 resources:
-  min_memory_mb: 1024
-  min_cpu: 1
+  min_memory_mb: 512
+  min_cpu: 0.1
 ```
 
 For the full field-by-field reference, see the [kyper.yml Reference](https://kyper.shop/docs/developers/kyper-yml) in the web docs.

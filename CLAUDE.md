@@ -247,7 +247,7 @@ pricing:
 
 resources:
   min_memory_mb: 512            # Default 512. Affects tier selection.
-  min_cpu: 1                    # Default 1.
+  min_cpu: 0.1                  # Default 0.1.
 
 env:                             # Optional. Array of required env var key names.
   - DATABASE_URL
@@ -294,7 +294,7 @@ Interactive wizard using Huh forms. Flow:
   - Laravel: php artisan migrate --force
 6. Health check — path input with stack default (Rails→/up, Django→/health/, Node→/health)
 7. Pricing — one-time and/or subscription price
-8. Resources — tier select (512MB/$6, 1024MB/$12, 2048MB/$18, 4096MB/$24)
+8. Resources — tier select (Hobby 512MB/0.1 vCPU/$5, Basic 512MB/0.25 vCPU/$10, Pro 1GB/0.5 vCPU/$15, Turbo 2GB/1 vCPU/$25)
 9. Preview — render YAML with Glamour, confirm before writing
 
 Stack detection reads: config/application.rb (Rails), manage.py (Django), artisan (Laravel), go.mod (Go), package.json (Node frameworks), schema.prisma (Prisma)
@@ -386,7 +386,7 @@ Flags:
 
 kyper test
 
-Build and ephemerally deploy the app for pre-submission testing. Deployment uses Starter-tier resources (512 MB RAM, 0.25 vCPU) and auto-destroys after 1 hour.
+Build and ephemerally deploy the app for pre-submission testing. Deployment uses Hobby-tier resources (512 MB RAM, 0.1 vCPU) and auto-destroys after 1 hour.
 
 Flags:
 - --status: GET current test deploy, print URL and expiry. 404 → user-friendly "no active deploy" message (not an error).

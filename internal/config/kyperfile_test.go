@@ -70,6 +70,38 @@ healthcheck:
 	}
 }
 
+func TestLoadKyperFileSupportsFractionalCPU(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "kyper.yml")
+	content := `name: test
+version: 1.0.0
+category: productivity
+docker:
+  dockerfile: ./Dockerfile
+processes:
+  web: start
+pricing:
+  subscription: 9.99
+resources:
+  min_memory_mb: 512
+  min_cpu: 0.25
+`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	kf, _, err := LoadKyperFile(path)
+	if err != nil {
+		t.Fatalf("LoadKyperFile failed: %v", err)
+	}
+	if kf.Resources.MinMemoryMB != 512 {
+		t.Errorf("expected min_memory_mb 512, got %d", kf.Resources.MinMemoryMB)
+	}
+	if kf.Resources.MinCPU != 0.25 {
+		t.Errorf("expected min_cpu 0.25, got %v", kf.Resources.MinCPU)
+	}
+}
+
 func TestDepEntryStringFormat(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "kyper.yml")

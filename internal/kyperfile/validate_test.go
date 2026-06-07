@@ -38,6 +38,51 @@ func TestValidFile(t *testing.T) {
 	}
 }
 
+func TestResourcesAllowFractionalCPU(t *testing.T) {
+	kf := validKyperFile()
+	kf.Resources.MinMemoryMB = 512
+	kf.Resources.MinCPU = 0.25
+
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("expected fractional CPU to be valid, got errors: %v", r.Errors)
+	}
+}
+
+func TestResourcesRejectNegativeValues(t *testing.T) {
+	kf := validKyperFile()
+	kf.Resources.MinMemoryMB = -1
+	kf.Resources.MinCPU = -0.1
+
+	r := Validate(kf, false)
+	assertContainsError(t, r, "resources.min_memory_mb must be a positive integer")
+	assertContainsError(t, r, "resources.min_cpu must be a positive number")
+}
+
+func TestResourcesRejectExplicitZeroValues(t *testing.T) {
+	var kf config.KyperFile
+	err := yaml.Unmarshal([]byte(`name: my-app
+version: 1.0.0
+category: productivity
+docker:
+  dockerfile: ./Dockerfile
+processes:
+  web: bin/start
+pricing:
+  one_time: 29.99
+resources:
+  min_memory_mb: 0
+  min_cpu: 0
+`), &kf)
+	if err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	r := Validate(&kf, false)
+	assertContainsError(t, r, "resources.min_memory_mb must be a positive integer")
+	assertContainsError(t, r, "resources.min_cpu must be a positive number")
+}
+
 func TestNameRequired(t *testing.T) {
 	kf := validKyperFile()
 	kf.Name = ""
