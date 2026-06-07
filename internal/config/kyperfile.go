@@ -37,8 +37,41 @@ type PricingConfig struct {
 }
 
 type ResourceConfig struct {
-	MinMemoryMB int `yaml:"min_memory_mb,omitempty"`
-	MinCPU      int `yaml:"min_cpu,omitempty"`
+	MinMemoryMB  int     `yaml:"min_memory_mb,omitempty"`
+	MinCPU       float64 `yaml:"min_cpu,omitempty"`
+	minMemorySet bool
+	minCPUSet    bool
+}
+
+func (r *ResourceConfig) UnmarshalYAML(value *yaml.Node) error {
+	type rawResourceConfig struct {
+		MinMemoryMB int     `yaml:"min_memory_mb,omitempty"`
+		MinCPU      float64 `yaml:"min_cpu,omitempty"`
+	}
+	var raw rawResourceConfig
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+
+	r.MinMemoryMB = raw.MinMemoryMB
+	r.MinCPU = raw.MinCPU
+	for i := 0; i < len(value.Content)-1; i += 2 {
+		switch value.Content[i].Value {
+		case "min_memory_mb":
+			r.minMemorySet = true
+		case "min_cpu":
+			r.minCPUSet = true
+		}
+	}
+	return nil
+}
+
+func (r ResourceConfig) HasMinMemoryMB() bool {
+	return r.minMemorySet || r.MinMemoryMB != 0
+}
+
+func (r ResourceConfig) HasMinCPU() bool {
+	return r.minCPUSet || r.MinCPU != 0
 }
 
 type StorageConfig struct {

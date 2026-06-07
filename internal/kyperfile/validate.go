@@ -97,6 +97,7 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validateDeps(kf, r)
 	validateHealthcheck(kf, r)
 	validatePricing(kf, r)
+	validateResources(kf, r)
 	validateEnv(kf, r)
 	validateIntegrations(kf, r)
 	validateStorage(kf, r)
@@ -105,6 +106,15 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validateSecurity(kf, r)
 
 	return r
+}
+
+func validateResources(kf *config.KyperFile, r *ValidationResult) {
+	if kf.Resources.HasMinMemoryMB() && kf.Resources.MinMemoryMB <= 0 {
+		addError(r, "resources.min_memory_mb must be a positive integer")
+	}
+	if kf.Resources.HasMinCPU() && kf.Resources.MinCPU <= 0 {
+		addError(r, "resources.min_cpu must be a positive number")
+	}
 }
 
 func validateStorage(kf *config.KyperFile, r *ValidationResult) {
