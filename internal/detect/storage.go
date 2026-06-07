@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 type StorageResult struct {
@@ -12,7 +14,8 @@ type StorageResult struct {
 	Source string
 }
 
-var genericStoragePathRegexp = regexp.MustCompile(`(^|[^A-Za-z0-9_.-])((data/uploads|var/media|uploads|storage|media)(/[A-Za-z0-9_.-]+)*)`)
+var genericStorageConfigKeyRegexp = regexp.MustCompile(`(?i)(upload|uploads|media|storage|file|files|asset|assets)[A-Za-z0-9_.-]{0,32}(dir|path|root|folder|directory|location)|(dir|path|root|folder|directory|location)[A-Za-z0-9_.-]{0,32}(upload|uploads|media|storage|file|files|asset|assets)`)
+var quotedStoragePathRegexp = regexp.MustCompile(`["']([^"']+)["']`)
 
 func DetectStorage(dir string) []StorageResult {
 	seen := make(map[string]bool)
@@ -67,11 +70,10 @@ func DetectStorage(dir string) []StorageResult {
 		if err != nil {
 			return nil
 		}
-		matches := genericStoragePathRegexp.FindAllStringSubmatch(string(data), -1)
-		for _, match := range matches {
-			if len(match) > 2 && safeMutablePath(match[2]) {
+		for _, candidate := range genericStoragePathCandidates(string(data)) {
+			if safeMutablePath(candidate) {
 				rel, _ := filepath.Rel(dir, path)
-				add(match[2], rel)
+				add(candidate, rel)
 			}
 		}
 		return nil
@@ -81,7 +83,11 @@ func DetectStorage(dir string) []StorageResult {
 }
 
 func isRails(dir string) bool {
-	return fileExists(filepath.Join(dir, "config/application.rb")) || fileExists(filepath.Join(dir, "Gemfile.lock"))
+	if fileExists(filepath.Join(dir, "config/application.rb")) {
+		return true
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "Gemfile.lock"))
+	return err == nil && regexp.MustCompile(`(?m)^\s{4}rails \(`).Match(data)
 }
 
 func isDjango(dir string) bool {
@@ -94,7 +100,59 @@ func isLaravel(dir string) bool {
 
 func railsUsesSQLite(dir string) bool {
 	data, err := os.ReadFile(filepath.Join(dir, "config/database.yml"))
-	return err == nil && strings.Contains(strings.ToLower(string(data)), "adapter: sqlite3")
+	if err != nil {
+		return false
+	}
+
+	var parsed map[string]interface{}
+	if yaml.Unmarshal(data, &parsed) == nil {
+		if production, ok := parsed["production"]; ok {
+			return configContainsSQLite(production)
+		}
+		return configContainsSQLite(parsed)
+	}
+
+	text := strings.ToLower(string(data))
+	productionIndex := strings.Index(text, "production:")
+	if productionIndex < 0 {
+		return strings.Contains(text, "adapter: sqlite3")
+	}
+	nextEnv := regexp.MustCompile(`(?m)^[a-z_]+:`).FindStringIndex(text[productionIndex+len("production:"):])
+	productionBlock := text[productionIndex:]
+	if nextEnv != nil {
+		productionBlock = text[productionIndex : productionIndex+len("production:")+nextEnv[0]]
+	}
+	return strings.Contains(productionBlock, "adapter: sqlite3")
+}
+
+func configContainsSQLite(value interface{}) bool {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		for key, nested := range typed {
+			if key == "adapter" && nested == "sqlite3" {
+				return true
+			}
+			if configContainsSQLite(nested) {
+				return true
+			}
+		}
+	case map[interface{}]interface{}:
+		for key, nested := range typed {
+			if key == "adapter" && nested == "sqlite3" {
+				return true
+			}
+			if configContainsSQLite(nested) {
+				return true
+			}
+		}
+	case []interface{}:
+		for _, nested := range typed {
+			if configContainsSQLite(nested) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func railsUsesLocalActiveStorage(dir string) bool {
@@ -241,7 +299,7 @@ func safeMutablePath(path string) bool {
 	}
 	first := strings.Split(clean, "/")[0]
 	return first == "media" || first == "uploads" || first == "storage" ||
-		strings.HasPrefix(clean, "var/media") || strings.HasPrefix(clean, "data/uploads")
+		hasStoragePrefix(clean, "var/media") || hasStoragePrefix(clean, "data/uploads")
 }
 
 func firstMutableSegment(path string) string {
@@ -271,6 +329,25 @@ func normalizeRelativeStoragePath(path string) string {
 		return ""
 	}
 	return clean
+}
+
+func genericStoragePathCandidates(content string) []string {
+	var candidates []string
+	for _, line := range strings.Split(content, "\n") {
+		if !genericStorageConfigKeyRegexp.MatchString(line) {
+			continue
+		}
+		for _, match := range quotedStoragePathRegexp.FindAllStringSubmatch(line, -1) {
+			if len(match) > 1 {
+				candidates = append(candidates, match[1])
+			}
+		}
+	}
+	return candidates
+}
+
+func hasStoragePrefix(path, prefix string) bool {
+	return path == prefix || strings.HasPrefix(path, prefix+"/")
 }
 
 func smallConfigFile(path string) bool {

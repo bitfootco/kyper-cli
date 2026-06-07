@@ -28,6 +28,17 @@ func TestDetectStorageRailsSQLite(t *testing.T) {
 	}
 }
 
+func TestDetectStorageRailsSQLiteIgnoresNonProductionAdapters(t *testing.T) {
+	dir := t.TempDir()
+	writeStorageTestFile(t, dir, "config/application.rb", "")
+	writeStorageTestFile(t, dir, "config/database.yml", "development:\n  adapter: sqlite3\nproduction:\n  adapter: postgresql\n")
+
+	results := DetectStorage(dir)
+	if len(results) != 0 {
+		t.Fatalf("expected no Rails storage mount for production Postgres, got %+v", results)
+	}
+}
+
 func TestDetectStorageRailsRemoteActiveStorageDoesNotInfer(t *testing.T) {
 	dir := t.TempDir()
 	writeStorageTestFile(t, dir, "config/application.rb", "")
@@ -82,6 +93,54 @@ func TestDetectStorageGenericStrongReference(t *testing.T) {
 	results := DetectStorage(dir)
 	if len(results) != 1 || results[0].Path != "uploads" {
 		t.Fatalf("expected generic uploads mount, got %+v", results)
+	}
+}
+
+func TestDetectStorageGenericDoesNotInferBareIdentifiers(t *testing.T) {
+	dir := t.TempDir()
+	writeStorageTestFile(t, dir, "package.json", `{"scripts":{"start":"node server.js"}}`)
+	writeStorageTestFile(t, dir, "server.js", `
+const storage = new Map();
+const media = await navigator.mediaDevices.getUserMedia({audio: true});
+const uploadsEnabled = true;
+`)
+
+	results := DetectStorage(dir)
+	if len(results) != 0 {
+		t.Fatalf("expected no storage mount from bare identifiers, got %+v", results)
+	}
+}
+
+func TestDetectStorageGenericDetectsConfigLikePathLiterals(t *testing.T) {
+	dir := t.TempDir()
+	writeStorageTestFile(t, dir, "package.json", `{"scripts":{"start":"node server.js"}}`)
+	writeStorageTestFile(t, dir, "server.js", "module.exports = { uploadDir: './uploads/avatars' };\n")
+
+	results := DetectStorage(dir)
+	if len(results) != 1 || results[0].Path != "uploads" {
+		t.Fatalf("expected generic uploads mount, got %+v", results)
+	}
+}
+
+func TestDetectStorageGenericDoesNotInferUnsafePrefixMatches(t *testing.T) {
+	dir := t.TempDir()
+	writeStorageTestFile(t, dir, "package.json", `{"scripts":{"start":"node server.js"}}`)
+	writeStorageTestFile(t, dir, "server.js", "module.exports = { uploadDir: './data/uploads-old' };\n")
+
+	results := DetectStorage(dir)
+	if len(results) != 0 {
+		t.Fatalf("expected no storage mount from unsafe prefix match, got %+v", results)
+	}
+}
+
+func TestDetectStorageNonRailsGemfileLockStillAllowsGenericDetection(t *testing.T) {
+	dir := t.TempDir()
+	writeStorageTestFile(t, dir, "Gemfile.lock", "sinatra (3.0.0)\n")
+	writeStorageTestFile(t, dir, "app.rb", "set :upload_dir, './uploads/files'\n")
+
+	results := DetectStorage(dir)
+	if len(results) != 1 || results[0].Path != "uploads" {
+		t.Fatalf("expected generic detection for non-Rails Ruby app, got %+v", results)
 	}
 }
 
