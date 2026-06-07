@@ -426,6 +426,12 @@ deps:
     storage_gb: 30
   - redis: "7"
 
+storage:
+  mounts:
+    - path: storage
+      storage_gb: 5
+    - path: uploads
+
 env:
   - OPENAI_API_KEY
   - STRIPE_SECRET_KEY
@@ -461,6 +467,7 @@ For the full field-by-field reference, see the [kyper.yml Reference](https://kyp
 | `docker.dockerfile` | Yes | Path to Dockerfile (relative to project root) |
 | `processes.web` | Yes | Command to start the web server |
 | `deps` | No | Infrastructure dependencies (`postgres`, `mysql`, `redis`, `elasticsearch`, `opensearch`, `s3`) |
+| `storage.mounts` | No | App-local persistent storage paths; up to 5 mounts, optional `storage_gb` from 1-10 |
 | `env` | No | Required environment variable names (consumers must set these before deploy) |
 | `hooks.release` | No | Runs as a one-shot Job **before** app pods start, after deps are ready. Use for migrations and one-time setup (`rails db:prepare`, `prisma migrate deploy`, etc.) |
 | `hooks.on_deploy` | No | Runs **after** pods are healthy on a fresh deploy. Use for cache warmup, post-deploy notifications, etc. |

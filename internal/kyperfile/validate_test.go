@@ -1,6 +1,8 @@
 package kyperfile
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -9,6 +11,7 @@ import (
 )
 
 func floatPtr(f float64) *float64 { return &f }
+func intPtr(i int) *int           { return &i }
 
 func validKyperFile() *config.KyperFile {
 	return &config.KyperFile{
@@ -69,19 +72,19 @@ func TestNameValidFormats(t *testing.T) {
 
 func TestNameInvalidFormats(t *testing.T) {
 	tests := []string{
-		"My App",        // uppercase + space
-		"Dashi",         // uppercase
-		"MY-APP",        // uppercase
-		"-leading",      // leading hyphen
-		"trailing-",     // trailing hyphen
-		"App 2.0",       // uppercase + space + dot
-		"café",          // non-ASCII
-		"my_app",        // underscore
-		"my app",        // space
-		"my.app",        // dot
-		"!!!",           // symbols only
-		"---",           // hyphens only
-		"   ",           // whitespace only
+		"My App",    // uppercase + space
+		"Dashi",     // uppercase
+		"MY-APP",    // uppercase
+		"-leading",  // leading hyphen
+		"trailing-", // trailing hyphen
+		"App 2.0",   // uppercase + space + dot
+		"café",      // non-ASCII
+		"my_app",    // underscore
+		"my app",    // space
+		"my.app",    // dot
+		"!!!",       // symbols only
+		"---",       // hyphens only
+		"   ",       // whitespace only
 	}
 	for _, name := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -160,7 +163,6 @@ func TestAllValidCategories(t *testing.T) {
 		}
 	}
 }
-
 
 func TestTaglineTooLong(t *testing.T) {
 	kf := validKyperFile()
@@ -479,7 +481,6 @@ hooks:
 	}
 }
 
-
 func TestIntegrationsValid(t *testing.T) {
 	kf := validKyperFile()
 	kf.Integrations = []string{"stripe", "twilio"}
@@ -509,6 +510,81 @@ func TestPricingRequired(t *testing.T) {
 	kf.Pricing.Subscription = nil
 	r := Validate(kf, false)
 	assertContainsError(t, r, "at least one pricing option")
+}
+
+func TestValidateStorageMounts(t *testing.T) {
+	kf := validKyperFile()
+	kf.Storage.Mounts = []config.StorageMount{
+		{Path: "storage", StorageGB: intPtr(5)},
+		{Path: "/app/uploads"},
+	}
+
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Fatalf("expected valid storage mounts, got errors: %v", r.Errors)
+	}
+}
+
+func TestValidateStorageMountPathRejectsUnsafeValues(t *testing.T) {
+	for _, path := range []string{"", "/", ".", "../data", "data/../secret", "uploads;rm"} {
+		kf := validKyperFile()
+		kf.Storage.Mounts = []config.StorageMount{{Path: path}}
+		r := Validate(kf, false)
+		assertContainsError(t, r, "storage.mounts[0].path must be a safe")
+	}
+}
+
+func TestValidateStorageMountDuplicates(t *testing.T) {
+	kf := validKyperFile()
+	kf.Storage.Mounts = []config.StorageMount{{Path: "storage"}, {Path: "storage/"}}
+
+	r := Validate(kf, false)
+	assertContainsError(t, r, "storage.mounts contains duplicate path")
+}
+
+func TestValidateStorageMountLimitAndSize(t *testing.T) {
+	kf := validKyperFile()
+	kf.Storage.Mounts = []config.StorageMount{
+		{Path: "data0"},
+		{Path: "data1"},
+		{Path: "data2"},
+		{Path: "data3"},
+		{Path: "data4"},
+		{Path: "data5", StorageGB: intPtr(11)},
+	}
+
+	r := Validate(kf, false)
+	assertContainsError(t, r, "storage.mounts is limited to 5 entries")
+	assertContainsError(t, r, "storage.mounts[5].storage_gb must be between 1 and 10")
+}
+
+func TestValidateStorageMountRejectsExplicitZeroStorageGB(t *testing.T) {
+	content := `name: test
+version: 1.0.0
+category: productivity
+docker:
+  dockerfile: ./Dockerfile
+processes:
+  web: start
+pricing:
+  one_time: 10
+storage:
+  mounts:
+    - path: uploads
+      storage_gb: 0
+`
+	dir := t.TempDir()
+	path := filepath.Join(dir, "kyper.yml")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	kf, _, err := config.LoadKyperFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := Validate(kf, false)
+	assertContainsError(t, r, "storage.mounts[0].storage_gb must be between 1 and 10")
 }
 
 func assertContainsError(t *testing.T, r *ValidationResult, substr string) {

@@ -181,3 +181,38 @@ func TestLoadKyperFileMalformed(t *testing.T) {
 		t.Error("expected error for malformed YAML")
 	}
 }
+
+func TestStorageMountsParse(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "kyper.yml")
+	content := `name: test
+version: 1.0.0
+category: productivity
+docker:
+  dockerfile: ./Dockerfile
+processes:
+  web: start
+storage:
+  mounts:
+    - path: storage
+      storage_gb: 5
+    - path: /app/uploads
+`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	kf, _, err := LoadKyperFile(path)
+	if err != nil {
+		t.Fatalf("LoadKyperFile failed: %v", err)
+	}
+	if len(kf.Storage.Mounts) != 2 {
+		t.Fatalf("expected 2 storage mounts, got %d", len(kf.Storage.Mounts))
+	}
+	if kf.Storage.Mounts[0].Path != "storage" || kf.Storage.Mounts[0].StorageGB == nil || *kf.Storage.Mounts[0].StorageGB != 5 {
+		t.Errorf("unexpected first storage mount: %+v", kf.Storage.Mounts[0])
+	}
+	if kf.Storage.Mounts[1].Path != "/app/uploads" {
+		t.Errorf("unexpected second storage mount: %+v", kf.Storage.Mounts[1])
+	}
+}

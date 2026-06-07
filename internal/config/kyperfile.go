@@ -9,20 +9,21 @@ import (
 )
 
 type KyperFile struct {
-	Name        string            `yaml:"name"`
-	Version     string            `yaml:"version"`
-	Tagline     string            `yaml:"tagline,omitempty"`
-	Category    string            `yaml:"category"`
-	Docker      DockerConfig      `yaml:"docker"`
-	Processes   map[string]string `yaml:"processes"`
-	Deps        []DepEntry        `yaml:"deps,omitempty"`
-	Pricing     PricingConfig     `yaml:"pricing,omitempty"`
-	Resources   ResourceConfig    `yaml:"resources,omitempty"`
+	Name         string            `yaml:"name"`
+	Version      string            `yaml:"version"`
+	Tagline      string            `yaml:"tagline,omitempty"`
+	Category     string            `yaml:"category"`
+	Docker       DockerConfig      `yaml:"docker"`
+	Processes    map[string]string `yaml:"processes"`
+	Deps         []DepEntry        `yaml:"deps,omitempty"`
+	Pricing      PricingConfig     `yaml:"pricing,omitempty"`
+	Resources    ResourceConfig    `yaml:"resources,omitempty"`
 	Env          []string          `yaml:"env,omitempty"`
 	Integrations []string          `yaml:"integrations,omitempty"`
+	Storage      StorageConfig     `yaml:"storage,omitempty"`
 	Hooks        HooksConfig       `yaml:"hooks,omitempty"`
-	Healthcheck HealthcheckConfig `yaml:"healthcheck,omitempty"`
-	Security    SecurityConfig    `yaml:"security,omitempty"`
+	Healthcheck  HealthcheckConfig `yaml:"healthcheck,omitempty"`
+	Security     SecurityConfig    `yaml:"security,omitempty"`
 }
 
 type DockerConfig struct {
@@ -38,6 +39,15 @@ type PricingConfig struct {
 type ResourceConfig struct {
 	MinMemoryMB int `yaml:"min_memory_mb,omitempty"`
 	MinCPU      int `yaml:"min_cpu,omitempty"`
+}
+
+type StorageConfig struct {
+	Mounts []StorageMount `yaml:"mounts,omitempty"`
+}
+
+type StorageMount struct {
+	Path      string `yaml:"path"`
+	StorageGB *int   `yaml:"storage_gb,omitempty"`
 }
 
 type HooksConfig struct {
