@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/huh"
 	"github.com/bitfootco/kyper-cli/internal/config"
 	"github.com/bitfootco/kyper-cli/internal/detect"
 	"github.com/bitfootco/kyper-cli/internal/kyperfile"
 	"github.com/bitfootco/kyper-cli/internal/ui"
+	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -40,8 +40,9 @@ var initCmd = &cobra.Command{
 		stacks := detect.DetectStack(cwd)
 		detectedProcesses := detect.DetectProcesses(cwd)
 		detectedDeps := detect.DetectDeps(cwd)
+		detectedStorage := detect.DetectStorage(cwd)
 
-		if len(stacks) > 0 || len(detectedProcesses) > 0 || len(detectedDeps) > 0 {
+		if len(stacks) > 0 || len(detectedProcesses) > 0 || len(detectedDeps) > 0 || len(detectedStorage) > 0 {
 			fmt.Println()
 			fmt.Println(ui.Bold.Render("Auto-detected:"))
 			for _, s := range stacks {
@@ -52,6 +53,9 @@ var initCmd = &cobra.Command{
 			}
 			for _, d := range detectedDeps {
 				fmt.Printf("  Dep: %s (%s)\n", ui.InfoStyle.Render(d.Name), ui.DimStyle.Render(d.Source))
+			}
+			for _, s := range detectedStorage {
+				fmt.Printf("  Storage: %s (%s)\n", ui.InfoStyle.Render(s.Path), ui.DimStyle.Render(s.Source))
 			}
 			fmt.Println()
 		}
@@ -216,8 +220,12 @@ var initCmd = &cobra.Command{
 		}
 
 		// Build KyperFile struct
+		storageMounts := make([]config.StorageMount, 0, len(detectedStorage))
+		for _, storage := range detectedStorage {
+			storageMounts = append(storageMounts, config.StorageMount{Path: storage.Path})
+		}
 		kf := buildKyperFile(title, tagline, category, processes,
-			selectedDeps, release, healthPath, oneTimeStr, subStr, memoryTier)
+			selectedDeps, storageMounts, release, healthPath, oneTimeStr, subStr, memoryTier)
 
 		// Step 9: Preview
 		yamlBytes, err := yaml.Marshal(kf)
@@ -291,7 +299,7 @@ var initCmd = &cobra.Command{
 }
 
 func buildKyperFile(title, tagline, category string,
-	processes map[string]string, deps []config.DepEntry,
+	processes map[string]string, deps []config.DepEntry, storageMounts []config.StorageMount,
 	release, healthPath, oneTimeStr, subStr, memoryTier string) *config.KyperFile {
 
 	kf := &config.KyperFile{
@@ -316,6 +324,10 @@ func buildKyperFile(title, tagline, category string,
 
 	if release != "" {
 		kf.Hooks.Release = release
+	}
+
+	if len(storageMounts) > 0 {
+		kf.Storage.Mounts = storageMounts
 	}
 
 	if p := parsePrice(oneTimeStr); p != nil {

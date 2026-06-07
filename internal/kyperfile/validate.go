@@ -3,6 +3,7 @@ package kyperfile
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -70,9 +71,11 @@ var DBDeps = map[string]bool{
 var semverRegexp = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 var nameSlugRegexp = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$`)
 var cveIDRegexp = regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`)
+var storageMountPathRegexp = regexp.MustCompile(`^/?[A-Za-z0-9._/-]+$`)
 
 const maxIgnoredCVEs = 25
 const minReasonLength = 10
+const maxStorageMounts = 5
 
 type ValidationResult struct {
 	Valid    bool     `json:"valid"`
@@ -96,11 +99,65 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validatePricing(kf, r)
 	validateEnv(kf, r)
 	validateIntegrations(kf, r)
+	validateStorage(kf, r)
 	validateHooks(kf, r)
 	checkDBWithoutHook(kf, r)
 	validateSecurity(kf, r)
 
 	return r
+}
+
+func validateStorage(kf *config.KyperFile, r *ValidationResult) {
+	if len(kf.Storage.Mounts) == 0 {
+		return
+	}
+	if len(kf.Storage.Mounts) > maxStorageMounts {
+		addError(r, fmt.Sprintf("storage.mounts is limited to %d entries", maxStorageMounts))
+	}
+
+	seen := make(map[string]bool)
+	for i, mount := range kf.Storage.Mounts {
+		normalized, ok := normalizeStorageMountPath(mount.Path)
+		if !ok {
+			addError(r, fmt.Sprintf("storage.mounts[%d].path must be a safe absolute or relative path", i))
+		} else if seen[normalized] {
+			addError(r, fmt.Sprintf("storage.mounts contains duplicate path %q", normalized))
+		} else {
+			seen[normalized] = true
+		}
+
+		if mount.StorageGB != nil && (*mount.StorageGB < 1 || *mount.StorageGB > 10) {
+			addError(r, fmt.Sprintf("storage.mounts[%d].storage_gb must be between 1 and 10", i))
+		}
+	}
+}
+
+func normalizeStorageMountPath(path string) (string, bool) {
+	raw := strings.TrimSpace(path)
+	if raw == "" || raw == "/" || raw == "." {
+		return "", false
+	}
+	if !storageMountPathRegexp.MatchString(raw) {
+		return "", false
+	}
+
+	absolute := strings.HasPrefix(raw, "/")
+	clean := filepath.Clean(raw)
+	if clean == "." || clean == "/" {
+		return "", false
+	}
+	if clean != strings.TrimSuffix(raw, "/") {
+		return "", false
+	}
+	for _, segment := range strings.Split(clean, "/") {
+		if segment == ".." {
+			return "", false
+		}
+	}
+	if absolute && !strings.HasPrefix(clean, "/") {
+		clean = "/" + clean
+	}
+	return clean, true
 }
 
 func addError(r *ValidationResult, msg string) {
