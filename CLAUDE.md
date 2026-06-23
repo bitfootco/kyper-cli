@@ -249,6 +249,15 @@ resources:
   min_memory_mb: 512            # Default 512. Affects tier selection.
   min_cpu: 0.1                  # Default 0.1.
 
+capabilities:                    # Optional. User-facing services the app needs.
+  - email                        # Kyper-managed provider credentials.
+  - maps                         # Kyper-managed Google Maps credentials.
+  - payments                     # Stripe; buyer setup required.
+  - sms                          # Twilio; buyer setup required.
+
+integrations:                    # Deprecated compatibility only.
+  - resend                       # Maps to email with a validation warning.
+
 env:                             # Optional. Array of required env var key names.
   - DATABASE_URL
   - API_KEY
