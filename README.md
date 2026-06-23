@@ -434,7 +434,10 @@ storage:
 
 env:
   - OPENAI_API_KEY
-  - STRIPE_SECRET_KEY
+
+capabilities:
+  - email
+  - payments
 
 hooks:
   release: bundle exec rails db:prepare    # runs BEFORE app pods start (migrations)

@@ -102,6 +102,33 @@ resources:
 	}
 }
 
+func TestLoadKyperFileParsesCapabilities(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "kyper.yml")
+	content := `name: test
+version: 1.0.0
+category: productivity
+docker:
+  dockerfile: ./Dockerfile
+processes:
+  web: start
+capabilities:
+  - email
+  - maps
+`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	kf, _, err := LoadKyperFile(path)
+	if err != nil {
+		t.Fatalf("LoadKyperFile failed: %v", err)
+	}
+	if len(kf.Capabilities) != 2 || kf.Capabilities[0] != "email" || kf.Capabilities[1] != "maps" {
+		t.Fatalf("unexpected capabilities: %#v", kf.Capabilities)
+	}
+}
+
 func TestDepEntryStringFormat(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "kyper.yml")

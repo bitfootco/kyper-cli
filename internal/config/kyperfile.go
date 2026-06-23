@@ -19,6 +19,7 @@ type KyperFile struct {
 	Pricing      PricingConfig     `yaml:"pricing,omitempty"`
 	Resources    ResourceConfig    `yaml:"resources,omitempty"`
 	Env          []string          `yaml:"env,omitempty"`
+	Capabilities []string          `yaml:"capabilities,omitempty"`
 	Integrations []string          `yaml:"integrations,omitempty"`
 	Storage      StorageConfig     `yaml:"storage,omitempty"`
 	Hooks        HooksConfig       `yaml:"hooks,omitempty"`

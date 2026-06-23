@@ -535,6 +535,32 @@ func TestIntegrationsValid(t *testing.T) {
 	}
 }
 
+func TestCapabilitiesValid(t *testing.T) {
+	kf := validKyperFile()
+	kf.Capabilities = []string{"email", "maps", "payments", "sms"}
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("expected valid, got errors: %v", r.Errors)
+	}
+}
+
+func TestCapabilitiesUnknown(t *testing.T) {
+	kf := validKyperFile()
+	kf.Capabilities = []string{"email", "fax"}
+	r := Validate(kf, false)
+	assertContainsError(t, r, "unknown capability \"fax\"")
+}
+
+func TestIntegrationsWarnLegacy(t *testing.T) {
+	kf := validKyperFile()
+	kf.Integrations = []string{"resend"}
+	r := Validate(kf, false)
+	if !r.Valid {
+		t.Errorf("expected valid, got errors: %v", r.Errors)
+	}
+	assertContainsWarning(t, r, "integrations is deprecated")
+}
+
 func TestIntegrationsUnknown(t *testing.T) {
 	kf := validKyperFile()
 	kf.Integrations = []string{"stripe", "unknown_service"}

@@ -40,6 +40,13 @@ var KnownIntegrations = []string{
 	"postmark",
 }
 
+var KnownCapabilities = []string{
+	"email",
+	"maps",
+	"payments",
+	"sms",
+}
+
 var AllowedDepVersions = map[string][]string{
 	"postgres":      {"14", "15", "16"},
 	"mysql":         {"8"},
@@ -99,6 +106,7 @@ func Validate(kf *config.KyperFile, checkFileExists bool) *ValidationResult {
 	validatePricing(kf, r)
 	validateResources(kf, r)
 	validateEnv(kf, r)
+	validateCapabilities(kf, r)
 	validateIntegrations(kf, r)
 	validateStorage(kf, r)
 	validateHooks(kf, r)
@@ -354,6 +362,29 @@ func validateIntegrations(kf *config.KyperFile, r *ValidationResult) {
 		}
 		if !known {
 			addError(r, fmt.Sprintf("unknown integration %q — known integrations: %s", name, strings.Join(KnownIntegrations, ", ")))
+		}
+	}
+	addWarning(r, "integrations is deprecated; use capabilities instead (email, maps, payments, sms)")
+}
+
+func validateCapabilities(kf *config.KyperFile, r *ValidationResult) {
+	if len(kf.Capabilities) == 0 {
+		return
+	}
+	for _, name := range kf.Capabilities {
+		if strings.TrimSpace(name) == "" {
+			addError(r, "capability entries must be non-empty strings")
+			continue
+		}
+		known := false
+		for _, k := range KnownCapabilities {
+			if name == k {
+				known = true
+				break
+			}
+		}
+		if !known {
+			addError(r, fmt.Sprintf("unknown capability %q — known capabilities: %s", name, strings.Join(KnownCapabilities, ", ")))
 		}
 	}
 }
