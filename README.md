@@ -437,6 +437,8 @@ env:
 
 capabilities:
   - email
+  - maps
+  - mapbox
   - payments
 
 hooks:

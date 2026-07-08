@@ -526,18 +526,16 @@ hooks:
 	}
 }
 
-func TestIntegrationsValid(t *testing.T) {
+func TestIntegrationsInvalid(t *testing.T) {
 	kf := validKyperFile()
 	kf.Integrations = []string{"stripe", "twilio"}
 	r := Validate(kf, false)
-	if !r.Valid {
-		t.Errorf("expected valid, got errors: %v", r.Errors)
-	}
+	assertContainsError(t, r, "integrations is no longer supported")
 }
 
 func TestCapabilitiesValid(t *testing.T) {
 	kf := validKyperFile()
-	kf.Capabilities = []string{"email", "maps", "payments", "sms"}
+	kf.Capabilities = []string{"email", "maps", "mapbox", "payments", "sms"}
 	r := Validate(kf, false)
 	if !r.Valid {
 		t.Errorf("expected valid, got errors: %v", r.Errors)
@@ -551,14 +549,11 @@ func TestCapabilitiesUnknown(t *testing.T) {
 	assertContainsError(t, r, "unknown capability \"fax\"")
 }
 
-func TestIntegrationsWarnLegacy(t *testing.T) {
+func TestIntegrationsRejectLegacy(t *testing.T) {
 	kf := validKyperFile()
 	kf.Integrations = []string{"resend"}
 	r := Validate(kf, false)
-	if !r.Valid {
-		t.Errorf("expected valid, got errors: %v", r.Errors)
-	}
-	assertContainsWarning(t, r, "integrations is deprecated")
+	assertContainsError(t, r, "integrations is no longer supported")
 }
 
 func TestIntegrationsUnknown(t *testing.T) {

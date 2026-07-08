@@ -252,11 +252,12 @@ resources:
 capabilities:                    # Optional. User-facing services the app needs.
   - email                        # Kyper-managed provider credentials.
   - maps                         # Kyper-managed Google Maps credentials.
+  - mapbox                       # Kyper-managed Mapbox access token.
   - payments                     # Stripe; buyer setup required.
   - sms                          # Twilio; buyer setup required.
 
-integrations:                    # Deprecated compatibility only.
-  - resend                       # Maps to email with a validation warning.
+# integrations: is no longer supported. Use capabilities instead.
+
 
 env:                             # Optional. Array of required env var key names.
   - DATABASE_URL
