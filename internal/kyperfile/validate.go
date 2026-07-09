@@ -36,6 +36,7 @@ var KnownIntegrations = []string{
 	"twilio",
 	"sendgrid",
 	"google_maps",
+	"mapbox",
 	"resend",
 	"postmark",
 }
@@ -43,6 +44,7 @@ var KnownIntegrations = []string{
 var KnownCapabilities = []string{
 	"email",
 	"maps",
+	"mapbox",
 	"payments",
 	"sms",
 }
@@ -364,7 +366,7 @@ func validateIntegrations(kf *config.KyperFile, r *ValidationResult) {
 			addError(r, fmt.Sprintf("unknown integration %q — known integrations: %s", name, strings.Join(KnownIntegrations, ", ")))
 		}
 	}
-	addWarning(r, "integrations is deprecated; use capabilities instead (email, maps, payments, sms)")
+	addError(r, fmt.Sprintf("integrations is no longer supported; use capabilities instead (%s)", strings.Join(KnownCapabilities, ", ")))
 }
 
 func validateCapabilities(kf *config.KyperFile, r *ValidationResult) {
